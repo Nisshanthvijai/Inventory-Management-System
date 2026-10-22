@@ -101,3 +101,4 @@ Review date: 2026-10-22. Scope: every file in `src/`, with import directions che
 ## Progress log
 
 - 2026-10-22: review written; phases 1 to 3 started on branch `arch-phase-1-3`.
+- 2026-10-22: phases 1 to 3 done on `arch-phase-1-3` (steps 1, 2, 3, 4, 6, 7, 8; step 5 declined). 445 tests pass; live server checked without login. Not merged; Postman run with a login still to do.
