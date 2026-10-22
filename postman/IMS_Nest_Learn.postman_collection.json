@@ -1,0 +1,1105 @@
+{
+  "info": {
+    "name": "IMS Nest Learn",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "variantId",
+      "value": "ed005846-ca7e-47dc-8326-a22cca6ff073"
+    },
+    {
+      "key": "prId",
+      "value": ""
+    },
+    {
+      "key": "prLineId",
+      "value": ""
+    },
+    {
+      "key": "vendorId",
+      "value": "97f26946-a119-4545-926f-db42f68d5a4c"
+    },
+    {
+      "key": "poId",
+      "value": ""
+    },
+    {
+      "key": "poLineId",
+      "value": ""
+    },
+    {
+      "key": "poVariantId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 and ok', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json()).to.eql({ status: 'ok' });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 with an access token', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.access_token).to.be.a('string');",
+              "  pm.collectionVariables.set('token', body.access_token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Me",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/users/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 with a role', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().role).to.be.oneOf(['admin', 'manager', 'requestor']);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Me (no token, expect 401)",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "url": "{{baseUrl}}/users/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('401 standard error shape', () => {",
+              "  pm.response.to.have.status(401);",
+              "  pm.expect(pm.response.json().error).to.eql('UNAUTHORIZED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stock",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/stock"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 and an array', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json()).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create PR (creates a real PR)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"priority\": \"medium\",\n  \"lines\": [\n    { \"variant_id\": \"{{variantId}}\", \"quantity\": 2 }\n  ]\n}"
+        },
+        "url": "{{baseUrl}}/pr"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 with pr_no', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.pr_no).to.be.a('string');",
+              "  pm.expect(body.lines).to.eql(1);",
+              "  pm.collectionVariables.set('prId', body.pr_id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List PRs",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/pr"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 and an array with requester names', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const rows = pm.response.json();",
+              "  pm.expect(rows).to.be.an('array');",
+              "  if (rows.length) pm.expect(rows[0]).to.have.property('requested_by_name');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get PR by id (run Create PR first)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/pr/{{prId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 with header and lines', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.pr_no).to.be.a('string');",
+              "  pm.expect(body.lines).to.be.an('array');",
+              "  if (body.lines.length) pm.collectionVariables.set('prLineId', body.lines[0].pr_line_id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get PR (not a uuid, expect 400)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/pr/hello"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 invalid uuid', () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().details[0].message).to.eql('Must be a valid UUID');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get PR (unknown uuid, expect 404)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/pr/00000000-0000-4000-8000-000000000000"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('404 PR not found', () => {",
+              "  pm.response.to.have.status(404);",
+              "  pm.expect(pm.response.json().message).to.eql('PR not found');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Decide line: accept 1 (manager/admin only)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"accepted\",\n  \"approved_quantity\": 1\n}"
+        },
+        "url": "{{baseUrl}}/pr-lines/{{prLineId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200, line accepted, PR status recalculated', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.line_status).to.eql('accepted');",
+              "  pm.expect(body.pr_status).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Decide line: approved above requested (expect 400)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"accepted\",\n  \"approved_quantity\": 999999\n}"
+        },
+        "url": "{{baseUrl}}/pr-lines/{{prLineId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 names the limit', () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().message).to.include('cannot exceed the requested quantity');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Decide line: reject without comment (expect 400)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"rejected\"\n}"
+        },
+        "url": "{{baseUrl}}/pr-lines/{{prLineId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 validation failed', () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().message).to.eql('Validation failed');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create PO: order 1 pack (creates a real PO; manager/admin only)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendor_id\": \"{{vendorId}}\",\n  \"payment_terms\": \"30 days\",\n  \"lines\": [\n    { \"pr_line_id\": \"{{prLineId}}\", \"price\": 100, \"quantity\": 1, \"gst\": 12 }\n  ]\n}"
+        },
+        "url": "{{baseUrl}}/po"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 with po_no', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.po_no).to.be.a('string');",
+              "  pm.expect(body.lines).to.eql(1);",
+              "  pm.collectionVariables.set('poId', body.po_id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create PO: order far more than approved (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendor_id\": \"{{vendorId}}\",\n  \"lines\": [\n    { \"pr_line_id\": \"{{prLineId}}\", \"price\": 100, \"quantity\": 9999 }\n  ]\n}"
+        },
+        "url": "{{baseUrl}}/po"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 explains the limit', () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().message).to.include('you can order at most');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create PO: substitute variant_id (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendor_id\": \"{{vendorId}}\",\n  \"lines\": [\n    { \"pr_line_id\": \"{{prLineId}}\", \"variant_id\": \"{{variantId}}\", \"price\": 1, \"quantity\": 1 }\n  ]\n}"
+        },
+        "url": "{{baseUrl}}/po"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 validation failed', () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().message).to.eql('Validation failed');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List POs (manager/admin only)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/po"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 and an array with totals', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const rows = pm.response.json();",
+              "  pm.expect(rows).to.be.an('array');",
+              "  if (rows.length) pm.expect(rows[0]).to.have.property('total_with_gst');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get PO by id (run Create PO first)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/po/{{poId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 with header, totals and lines', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.po_no).to.be.a('string');",
+              "  pm.expect(body.lines).to.be.an('array').that.is.not.empty;",
+              "  pm.expect(body.lines[0]).to.have.property('received_quantity');",
+              "  pm.collectionVariables.set('poLineId', body.lines[0].po_line_id);",
+              "  pm.collectionVariables.set('poVariantId', body.lines[0].variant_id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get PO (not a uuid, expect 400)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/po/hello"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 invalid uuid', () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().details[0].message).to.eql('Must be a valid UUID');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get PO (unknown uuid, expect 404)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/po/00000000-0000-4000-8000-000000000000"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('404 PO not found', () => {",
+              "  pm.response.to.have.status(404);",
+              "  pm.expect(pm.response.json().message).to.eql('PO not found');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cancel PO (cancels the PO from Create PO)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/po/{{poId}}/cancel"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 and status cancelled', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().status).to.eql('cancelled');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cancel PO again (expect 409)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/po/{{poId}}/cancel"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('409 already cancelled', () => {",
+              "  pm.response.to.have.status(409);",
+              "  pm.expect(pm.response.json().message).to.include('only an open PO can be cancelled');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cancel PO (unknown uuid, expect 404)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/po/00000000-0000-4000-8000-000000000000/cancel"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('404 PO not found', () => {",
+              "  pm.response.to.have.status(404);",
+              "  pm.expect(pm.response.json().message).to.eql('PO not found');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create PO again: a cancelled PO frees its quantity (201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendor_id\": \"{{vendorId}}\",\n  \"payment_terms\": \"30 days\",\n  \"lines\": [\n    { \"pr_line_id\": \"{{prLineId}}\", \"price\": 100, \"quantity\": 1, \"gst\": 12 }\n  ]\n}"
+        },
+        "url": "{{baseUrl}}/po"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 with po_no', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.po_no).to.be.a('string');",
+              "  pm.expect(body.lines).to.eql(1);",
+              "  pm.collectionVariables.set('poId', body.po_id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get PO by id (the new open PO)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/po/{{poId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 with header, totals and lines', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.po_no).to.be.a('string');",
+              "  pm.expect(body.lines).to.be.an('array').that.is.not.empty;",
+              "  pm.expect(body.lines[0]).to.have.property('received_quantity');",
+              "  pm.collectionVariables.set('poLineId', body.lines[0].po_line_id);",
+              "  pm.collectionVariables.set('poVariantId', body.lines[0].variant_id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Receive goods: 1 (GRN; requestor or admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"po_id\": \"{{poId}}\",\n  \"invoice_no\": \"INV-POSTMAN\",\n  \"lines\": [\n    {\n      \"po_line_id\": \"{{poLineId}}\",\n      \"variant_id\": \"{{poVariantId}}\",\n      \"received_quantity\": 1\n    }\n  ]\n}"
+        },
+        "url": "{{baseUrl}}/grn"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 with grn_no\", () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(pm.response.json().grn_no).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Receive goods again on the now fully received PO (expect 403)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"po_id\": \"{{poId}}\",\n  \"invoice_no\": \"INV-POSTMAN-2\",\n  \"lines\": [\n    {\n      \"po_line_id\": \"{{poLineId}}\",\n      \"variant_id\": \"{{poVariantId}}\",\n      \"received_quantity\": 9999\n    }\n  ]\n}"
+        },
+        "url": "{{baseUrl}}/grn"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('403: a fully received PO accepts no more goods', () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().message).to.include('not fully received or cancelled');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List GRNs",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/grn"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json()).to.be.an('array').that.is.not.empty;",
+              "  pm.expect(pm.response.json()[0]).to.have.property('lines');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cancel PO with goods received (expect 409)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/po/{{poId}}/cancel"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('409', () => {",
+              "  pm.response.to.have.status(409);",
+              "  pm.expect(pm.response.json().message).to.match(/only an open PO|goods received/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "My PO lines (any user, no prices)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/po-lines/mine"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200, an array, and no price fields', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const rows = pm.response.json();",
+              "  pm.expect(rows).to.be.an('array');",
+              "  rows.forEach((r) => {",
+              "    pm.expect(r).to.not.have.property('price');",
+              "    pm.expect(r).to.not.have.property('gst');",
+              "    pm.expect(r).to.not.have.property('line_total');",
+              "    pm.expect(r).to.have.property('can_receive');",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create PR (empty lines, expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lines\": []\n}"
+        },
+        "url": "{{baseUrl}}/pr"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 with details', () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().details).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master: units",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/uoms"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json()).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master: brands",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/brands"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master: categories",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/categories"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master: item types",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/item-types"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master: items",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/items"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master: variants (with units)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/variants"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json()[0]).to.have.property('units_per_purchase');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master: vendors (manager/admin)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/vendors"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master: create brand with no fields (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": "{{baseUrl}}/brands"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"400\", () => {",
+              "  pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users (manager/admin)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json()[0]).to.have.property('role');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stock: negative quantity (expect 400; changes nothing)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": -1\n}"
+        },
+        "url": "{{baseUrl}}/stock/00000000-0000-4000-8000-000000000000"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"400\", () => {",
+              "  pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

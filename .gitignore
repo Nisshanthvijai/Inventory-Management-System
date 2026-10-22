@@ -1,0 +1,9 @@
+# secrets: never commit real keys
+.env
+.env.*
+!.env.*.example
+
+# dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
