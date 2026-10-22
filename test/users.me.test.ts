@@ -87,6 +87,19 @@ describe('GET /api/users/me', () => {
     expect(eq).toHaveBeenCalledWith('id', 'u1');
   });
 
+  it('500 (not 403) when the profile read fails', async () => {
+    getUser.mockResolvedValue({
+      data: { user: { id: 'u1', email: 'a@b.com' } },
+      error: null,
+    });
+    maybeSingle.mockResolvedValue({ data: null, error: { message: 'db down' } });
+    const res = await request(app.getHttpServer())
+      .get('/api/users/me')
+      .set('Authorization', 'Bearer good-token');
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe('INTERNAL_SERVER_ERROR');
+  });
+
   it('403 when the user has no profile row', async () => {
     getUser.mockResolvedValue({
       data: { user: { id: 'u2', email: 'c@d.com' } },

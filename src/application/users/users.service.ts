@@ -25,7 +25,8 @@ export class UsersService {
       .eq('id', user.id)
       .maybeSingle();
 
-    if (error) throw new NotAllowed(error.message);
+    // A failed read is our problem (500); only a missing profile means "not allowed in" (403).
+    if (error) throw new UnexpectedError(error.message);
     if (!data) throw new NotAllowed('No profile for this user');
 
     return { ...data, email: user.email };
