@@ -1,53 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import { Row } from '../common/database.types';
 import { AuthUser } from '../../domain/common/auth-user';
-import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
-import { UnexpectedError } from '../common/errors';
+import { NotFound } from '../../domain/common/errors';
 import { PermissionService } from '../common/permission.service';
-import { SetStockDto } from './stock.dto';
 import { Session } from '../common/session';
-import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
+import { SetStockDto } from './stock.dto';
+import { StockRepository } from './stock.repository';
+import { StockRow } from './stock.types';
 
 @Injectable()
 export class StockService {
-  constructor(private readonly permissions: PermissionService) {}
+  constructor(
+    private readonly permissions: PermissionService,
+    private readonly stock: StockRepository,
+  ) {}
 
-  async list(session: Session): Promise<Row<'v_stock'>[]> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
-    const { data, error } = await db
-      .from('v_stock')
-      .select('*')
-      .order('item_name')
-      .order('variant_code');
-
-    if (error) throw new UnexpectedError(error.message);
-    return data;
+  list(session: Session): Promise<StockRow[]> {
+    return this.stock.list(session);
   }
 
-  /** Admin only. One UPDATE sets the new total, so concurrent admins cannot lose each other's change. */
-  async setQuantity(session: Session, user: AuthUser, id: string, dto: SetStockDto): Promise<Row<'v_stock'> | null> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+  /** Admin only. Sets the absolute quantity (e.g. after a stock count), then returns the row. */
+  async setQuantity(session: Session, user: AuthUser, id: string, dto: SetStockDto): Promise<StockRow | null> {
     await this.permissions.require(session, user, 'stock.set');
-
-    const { data, error } = await db
-      .from('stock')
-      .update({ quantity: dto.quantity })
-      .eq('id', id)
-      .select('id')
-      .maybeSingle();
-    if (error) {
-      if (error.code === '23514') throw new RuleViolation(error.message);
-      if (error.code === '42501') throw new NotAllowed('Only an admin can change stock');
-      throw new UnexpectedError(error.message);
-    }
-    if (!data) throw new NotFound('Stock row not found');
-
-    const { data: row, error: readError } = await db
-      .from('v_stock')
-      .select('*')
-      .eq('stock_id', id)
-      .maybeSingle();
-    if (readError) throw new UnexpectedError(readError.message);
-    return row;
+    const found = await this.stock.setQuantity(session, id, dto.quantity);
+    if (!found) throw new NotFound('Stock row not found');
+    return this.stock.findById(session, id);
   }
 }
