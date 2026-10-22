@@ -54,6 +54,7 @@ src/
                           common.module.ts (@Global: provides PermissionService)
 test/                     one vitest + supertest file per area, unit tests for rules, fake-db.ts
 docs/architecture-review.md   the review and the fix plan with its progress
+docs/how-it-works.md          a teaching guide: request flow, startup, login, why the design changed
 ```
 
 ### Dependency rule
