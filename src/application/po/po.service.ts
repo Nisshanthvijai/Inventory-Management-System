@@ -3,6 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiError } from '../../domain/common/api-error';
 import { assertPoLineAllowed } from '../../domain/po/po-line-rules';
+import { assertPoCancellable } from '../../domain/po/po-rules';
 import { requireManager } from '../common/roles';
 import { CreatePoDto } from './po.dto';
 
@@ -52,9 +53,7 @@ export class PoService {
       .maybeSingle();
     if (error) throw new ApiError(500, error.message);
     if (!po) throw new ApiError(404, 'PO not found');
-    if (po.status !== 'open') {
-      throw new ApiError(409, `PO ${po.po_no} is ${po.status}; only an open PO can be cancelled`);
-    }
+    assertPoCancellable(po.po_no, po.status);
 
     // `.eq('status', 'open')` makes this safe if the PO changed since we read it.
     const { data: cancelled, error: updateError } = await db

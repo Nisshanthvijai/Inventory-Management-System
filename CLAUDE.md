@@ -34,8 +34,10 @@ Reference solution (answer key, read-only, do not copy-paste from it blindly): `
 ```
 src/
   main.ts, setup.ts, app.module.ts, swagger.ts
-  domain/common/          api-error.ts, auth-user.ts      (no imports from other layers)
-  domain/<feature>/       *-rules.ts                      (pure business rules: plain values in, result or ApiError out)
+  domain/common/          api-error.ts, auth-user.ts, role-rules.ts   (no imports from other layers)
+  domain/<feature>/       *-rules.ts   (pure business rules: plain values in, result or ApiError out)
+                          po/po-line-rules.ts, po/po-rules.ts, pr-lines/pr-line-rules.ts,
+                          grn/grn-rules.ts, users/user-rules.ts
   application/<feature>/  *.service.ts, *.dto.ts (zod)    (business rules; master.resources.ts)
   application/auth/       auth-provider.ts                (AuthProvider = port: signIn(), verifyToken(); null on failure)
   application/common/     roles.ts, db-factory.ts         (DbFactory = port: anon(), forUser(token))
