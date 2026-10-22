@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '../../application/common/database.types';
+import { Db } from '../../application/common/db';
 import { DbFactory } from '../../application/common/db-factory';
 
 @Injectable()
@@ -14,17 +16,17 @@ export class SupabaseService implements DbFactory {
   }
 
   /** Client with no user. Used for login. */
-  anon(): SupabaseClient {
+  anon(): Db {
     return this.build({});
   }
 
   /** Client that acts as the user: their JWT is sent, so RLS applies. */
-  forUser(token: string): SupabaseClient {
+  forUser(token: string): Db {
     return this.build({ Authorization: `Bearer ${token}` });
   }
 
-  private build(headers: Record<string, string>): SupabaseClient {
-    return createClient(this.url, this.anonKey, {
+  private build(headers: Record<string, string>): Db {
+    return createClient<Database>(this.url, this.anonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
       global: { headers },
     });

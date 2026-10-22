@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../../application/common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiZodBody } from '../common/api-zod-body';
 import { CurrentDb, CurrentUser } from '../common/current.decorators';
@@ -17,7 +17,7 @@ export class StockController {
 
   @Get()
   @ApiOperation({ summary: 'Stock per variant, in the stock unit, with reorder flags' })
-  list(@CurrentDb() db: SupabaseClient) {
+  list(@CurrentDb() db: Db) {
     return this.stock.list(db);
   }
 
@@ -26,7 +26,7 @@ export class StockController {
   @ApiOperation({ summary: 'Set the absolute quantity of a stock row (admin). :id is stock_id.' })
   @ApiZodBody(setStockSchema)
   setQuantity(
-    @CurrentDb() db: SupabaseClient,
+    @CurrentDb() db: Db,
     @CurrentUser() user: AuthUser,
     @Param('id', new UuidPipe()) id: string,
     @Body(new ZodPipe(setStockSchema)) dto: SetStockDto,

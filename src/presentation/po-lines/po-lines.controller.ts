@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../../application/common/db';
 import { CurrentDb } from '../common/current.decorators';
 import { PoLinesService } from '../../application/po-lines/po-lines.service';
 
@@ -12,7 +12,7 @@ export class PoLinesController {
 
   @Get('mine')
   @ApiOperation({ summary: 'PO lines for PRs you requested, without prices (any user)' })
-  mine(@CurrentDb() db: SupabaseClient) {
+  mine(@CurrentDb() db: Db) {
     return this.poLines.mine(db);
   }
 }

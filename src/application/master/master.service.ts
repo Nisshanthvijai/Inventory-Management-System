@@ -1,35 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
+import { PostgrestError } from '@supabase/supabase-js';
+import { Db, untyped } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
 import { PermissionService } from '../common/permission.service';
 import { MasterResource } from './master.resources';
 
+/**
+ * Generic list / create / update for every master table. The table is chosen at runtime from
+ * MASTER_RESOURCES, so queries use the untyped client view; the table names themselves are
+ * checked against the schema in master.resources.ts, and request bodies by its zod schemas.
+ */
 @Injectable()
 export class MasterService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async list(db: SupabaseClient, user: AuthUser, r: MasterResource) {
+  async list(db: Db, user: AuthUser, r: MasterResource) {
     if (r.readRole === 'manager') await this.permissions.require(db, user, 'master.view-restricted', r.label);
 
-    let query = db.from(r.listFrom ?? r.table).select(r.listSelect ?? r.select);
+    let query = untyped(db).from(r.listFrom ?? r.table).select(r.listSelect ?? r.select);
     for (const column of r.order) query = query.order(column);
     const { data, error } = await query;
     if (error) throw new UnexpectedError(error.message);
     return data ?? [];
   }
 
-  async create(db: SupabaseClient, user: AuthUser, r: MasterResource, dto: object) {
+  async create(db: Db, user: AuthUser, r: MasterResource, dto: object) {
     await this.permissions.require(db, user, 'master.write', r.label);
-    const { data, error } = await db.from(r.table).insert(dto).select(r.select).single();
+    const { data, error } = await untyped(db).from(r.table).insert(dto).select(r.select).single();
     if (error) throw this.writeError(error, r);
     return data;
   }
 
-  async update(db: SupabaseClient, user: AuthUser, r: MasterResource, id: string, dto: object) {
+  async update(db: Db, user: AuthUser, r: MasterResource, id: string, dto: object) {
     await this.permissions.require(db, user, 'master.write', r.label);
-    const { data, error } = await db
+    const { data, error } = await untyped(db)
       .from(r.table)
       .update(dto)
       .eq('id', id)

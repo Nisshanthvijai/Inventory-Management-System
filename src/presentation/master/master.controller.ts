@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Type } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../../application/common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiZodBody } from '../common/api-zod-body';
 import { CurrentDb, CurrentUser } from '../common/current.decorators';
@@ -24,7 +24,7 @@ export function masterController(r: MasterResource): Type<unknown> {
 
     @Get()
     @ApiOperation({ summary: `List ${r.label}s (${readers})` })
-    list(@CurrentDb() db: SupabaseClient, @CurrentUser() user: AuthUser) {
+    list(@CurrentDb() db: Db, @CurrentUser() user: AuthUser) {
       return this.master.list(db, user, r);
     }
 
@@ -32,7 +32,7 @@ export function masterController(r: MasterResource): Type<unknown> {
     @ApiOperation({ summary: `Create a ${r.label} (admin)` })
     @ApiZodBody(r.create)
     create(
-      @CurrentDb() db: SupabaseClient,
+      @CurrentDb() db: Db,
       @CurrentUser() user: AuthUser,
       @Body(new ZodPipe(r.create)) dto: object,
     ) {
@@ -43,7 +43,7 @@ export function masterController(r: MasterResource): Type<unknown> {
     @ApiOperation({ summary: `Update a ${r.label} (admin). Retire with is_active: false.` })
     @ApiZodBody(r.update)
     update(
-      @CurrentDb() db: SupabaseClient,
+      @CurrentDb() db: Db,
       @CurrentUser() user: AuthUser,
       @Param('id', new UuidPipe()) id: string,
       @Body(new ZodPipe(r.update)) dto: object,

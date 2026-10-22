@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../../application/common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiZodBody } from '../common/api-zod-body';
 import { CurrentDb, CurrentUser } from '../common/current.decorators';
@@ -21,7 +21,7 @@ export class GrnController {
   })
   @ApiZodBody(createGrnSchema)
   create(
-    @CurrentDb() db: SupabaseClient,
+    @CurrentDb() db: Db,
     @CurrentUser() user: AuthUser,
     @Body(new ZodPipe(createGrnSchema)) dto: CreateGrnDto,
   ) {
@@ -30,7 +30,7 @@ export class GrnController {
 
   @Get()
   @ApiOperation({ summary: 'List goods receipts with their lines (yours, or all for manager/admin)' })
-  list(@CurrentDb() db: SupabaseClient) {
+  list(@CurrentDb() db: Db) {
     return this.grn.list(db);
   }
 }

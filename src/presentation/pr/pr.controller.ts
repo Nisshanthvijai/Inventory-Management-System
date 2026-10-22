@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../../application/common/db';
 import { ApiZodBody } from '../common/api-zod-body';
 import { CurrentDb } from '../common/current.decorators';
 import { UuidPipe } from '../common/uuid.pipe';
@@ -18,7 +18,7 @@ export class PrController {
   @ApiOperation({ summary: 'Create a PR (requestor or admin). Quantities in the stock unit.' })
   @ApiZodBody(createPrSchema)
   create(
-    @CurrentDb() db: SupabaseClient,
+    @CurrentDb() db: Db,
     @Body(new ZodPipe(createPrSchema)) dto: CreatePrDto,
   ) {
     return this.pr.create(db, dto);
@@ -26,13 +26,13 @@ export class PrController {
 
   @Get()
   @ApiOperation({ summary: 'List PRs: requestors see their own, managers and admins see all' })
-  list(@CurrentDb() db: SupabaseClient) {
+  list(@CurrentDb() db: Db) {
     return this.pr.list(db);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'One PR with its lines (404 if missing or not yours)' })
-  get(@CurrentDb() db: SupabaseClient, @Param('id', new UuidPipe()) id: string) {
+  get(@CurrentDb() db: Db, @Param('id', new UuidPipe()) id: string) {
     return this.pr.get(db, id);
   }
 }

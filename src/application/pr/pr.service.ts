@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../common/db';
 import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
 import { CreatePrDto } from './pr.dto';
 
 @Injectable()
 export class PrService {
-  async create(db: SupabaseClient, dto: CreatePrDto) {
+  async create(db: Db, dto: CreatePrDto) {
     const { data, error } = await db.rpc('create_pr', {
       p_lines: dto.lines,
       p_priority: dto.priority,
@@ -23,7 +23,7 @@ export class PrService {
     return data as { pr_id: string; pr_no: string; lines: number };
   }
 
-  async list(db: SupabaseClient) {
+  async list(db: Db) {
     const { data, error } = await db
       .from('purchase_requisition')
       .select(
@@ -39,7 +39,7 @@ export class PrService {
     });
   }
 
-  async get(db: SupabaseClient, id: string) {
+  async get(db: Db, id: string) {
     const { data: header, error } = await db
       .from('purchase_requisition')
       .select(

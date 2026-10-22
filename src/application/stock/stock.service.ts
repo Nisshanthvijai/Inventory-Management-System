@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
@@ -10,7 +10,7 @@ import { SetStockDto } from './stock.dto';
 export class StockService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async list(db: SupabaseClient) {
+  async list(db: Db) {
     const { data, error } = await db
       .from('v_stock')
       .select('*')
@@ -22,7 +22,7 @@ export class StockService {
   }
 
   /** Admin only. One UPDATE sets the new total, so concurrent admins cannot lose each other's change. */
-  async setQuantity(db: SupabaseClient, user: AuthUser, id: string, dto: SetStockDto) {
+  async setQuantity(db: Db, user: AuthUser, id: string, dto: SetStockDto) {
     await this.permissions.require(db, user, 'stock.set');
 
     const { data, error } = await db

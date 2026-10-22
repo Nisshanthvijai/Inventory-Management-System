@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
@@ -11,7 +11,7 @@ import { DecideLineDto } from './pr-lines.dto';
 export class PrLinesService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async decide(db: SupabaseClient, user: AuthUser, id: string, dto: DecideLineDto) {
+  async decide(db: Db, user: AuthUser, id: string, dto: DecideLineDto) {
     await this.permissions.require(db, user, 'pr-line.decide');
 
     const { data: line, error: lineError } = await db

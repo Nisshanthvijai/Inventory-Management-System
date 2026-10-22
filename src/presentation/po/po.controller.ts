@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../../application/common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiZodBody } from '../common/api-zod-body';
 import { CurrentDb, CurrentUser } from '../common/current.decorators';
@@ -22,7 +22,7 @@ export class PoController {
   })
   @ApiZodBody(createPoSchema)
   create(
-    @CurrentDb() db: SupabaseClient,
+    @CurrentDb() db: Db,
     @CurrentUser() user: AuthUser,
     @Body(new ZodPipe(createPoSchema)) dto: CreatePoDto,
   ) {
@@ -31,14 +31,14 @@ export class PoController {
 
   @Get()
   @ApiOperation({ summary: 'List POs with totals (manager/admin; requestors use /po-lines/mine)' })
-  list(@CurrentDb() db: SupabaseClient, @CurrentUser() user: AuthUser) {
+  list(@CurrentDb() db: Db, @CurrentUser() user: AuthUser) {
     return this.po.list(db, user);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'One PO with its lines, prices and received quantities (manager/admin)' })
   get(
-    @CurrentDb() db: SupabaseClient,
+    @CurrentDb() db: Db,
     @CurrentUser() user: AuthUser,
     @Param('id', new UuidPipe()) id: string,
   ) {
@@ -49,7 +49,7 @@ export class PoController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Cancel an open PO (manager/admin); 409 if not open or goods were received' })
   cancel(
-    @CurrentDb() db: SupabaseClient,
+    @CurrentDb() db: Db,
     @CurrentUser() user: AuthUser,
     @Param('id', new UuidPipe()) id: string,
   ) {

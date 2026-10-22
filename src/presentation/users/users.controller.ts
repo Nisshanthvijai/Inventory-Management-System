@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../../application/common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiZodBody } from '../common/api-zod-body';
 import { CurrentDb, CurrentUser } from '../common/current.decorators';
@@ -18,13 +18,13 @@ export class UsersController {
   // Declared before any `:id` route, or Nest would read "me" as an id.
   @Get('me')
   @ApiOperation({ summary: 'The signed-in user: profile, role and email' })
-  me(@CurrentDb() db: SupabaseClient, @CurrentUser() user: AuthUser) {
+  me(@CurrentDb() db: Db, @CurrentUser() user: AuthUser) {
     return this.users.me(db, user);
   }
 
   @Get()
   @ApiOperation({ summary: 'List users (manager/admin). Users are created in the Supabase dashboard.' })
-  list(@CurrentDb() db: SupabaseClient, @CurrentUser() user: AuthUser) {
+  list(@CurrentDb() db: Db, @CurrentUser() user: AuthUser) {
     return this.users.list(db, user);
   }
 
@@ -34,7 +34,7 @@ export class UsersController {
   })
   @ApiZodBody(updateUserSchema)
   update(
-    @CurrentDb() db: SupabaseClient,
+    @CurrentDb() db: Db,
     @CurrentUser() user: AuthUser,
     @Param('id', new UuidPipe()) id: string,
     @Body(new ZodPipe(updateUserSchema)) dto: UpdateUserDto,

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from './db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Action, assertCan } from '../../domain/common/permissions';
 import { RoleReader } from './role-reader';
@@ -13,7 +13,7 @@ export class PermissionService {
   constructor(private readonly roles: RoleReader) {}
 
   /** Throws NotAllowed unless the caller may do the action (see PERMISSIONS). */
-  async require(db: SupabaseClient, user: AuthUser, action: Action, subject?: string) {
+  async require(db: Db, user: AuthUser, action: Action, subject?: string) {
     assertCan(await this.roles.roleOf(db, user.id), action, subject);
   }
 }

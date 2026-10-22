@@ -41,7 +41,8 @@ src/
                           pr-lines/pr-line-rules.ts, pr-lines/pr-line-status.ts, users/user-rules.ts
   application/<feature>/  *.service.ts, *.dto.ts (zod)    (business rules; master.resources.ts)
   application/auth/       auth-provider.ts                (AuthProvider = port: signIn(), verifyToken(); null on failure)
-  application/common/     db-factory.ts, role-reader.ts, permission.service.ts, errors.ts
+  application/common/     db-factory.ts, role-reader.ts, permission.service.ts, errors.ts,
+                          db.ts (Db = SupabaseClient<Database>, rpcArgs, untyped), database.types.ts (generated)
                           (DbFactory = port: anon(), forUser(token); RoleReader = port: roleOf(db, userId))
   infrastructure/supabase/ supabase.service.ts (implements DbFactory), supabase-auth.provider.ts
                           (implements AuthProvider), supabase-role.reader.ts (implements RoleReader),
@@ -61,6 +62,7 @@ Tests override `SupabaseService`; `DbFactory` follows it because of `useExisting
 `domain/` imports nothing from the other layers or from any framework.
 Errors: domain rules and services throw app errors, never HTTP ones: `RuleViolation`, `NotAllowed`, `NotFound`, `Conflict` (domain/common/errors.ts), `Unauthenticated`, `UnexpectedError` (application/common/errors.ts). `AllExceptionsFilter` is the only place that maps an error kind to an HTTP status. `ApiError` (an `HttpException`) lives in presentation and is used only by `ZodPipe`. `AuthedRequest` (HTTP + SupabaseClient) lives in presentation; `AuthUser` lives in domain.
 Domain rules: a check that uses only plain values (status, quantities, units, roles) goes in `domain/<feature>/` as a pure function with a unit test in `test/`; a rule used by more than one feature goes in `domain/common/`. Services load data, call the rule, and keep: checks right after a query (404s), DB error code → app error mapping, trivial one-liners.
+DB types: `database.types.ts` is generated from the Supabase schema; never edit it by hand, regenerate it after every migration. Use `Db` (never the bare `SupabaseClient`). View columns are typed nullable: check them before use. Status and role values read from the DB go through `isPoStatus` / `isPrLineStatus` / `isRole`. RPCs with optional args use `rpcArgs<'name'>({...})`. Only `MasterService` may use `untyped(db)` (it picks the table at runtime).
 New files go in the layer that matches the table above. `tsc` does not check `test/`, so run `npm test` after moving files.
 
 ## Rules of the project

@@ -1,4 +1,13 @@
 import { z } from 'zod';
+import { Database } from '../common/database.types';
+
+type Schema = Database['public'];
+
+/** Master-data tables, checked against the generated schema (a typo will not compile). */
+export type MasterTable = keyof Pick<
+  Schema['Tables'],
+  'uom' | 'brand' | 'item_category' | 'item_type' | 'item' | 'item_variant' | 'vendor'
+>;
 
 /**
  * One entry per master-data table. The generic service and the controller factory
@@ -7,10 +16,10 @@ import { z } from 'zod';
  */
 export interface MasterResource {
   path: string; // URL path under /api
-  table: string; // table written to
+  table: MasterTable; // table written to
   label: string; // used in messages: "brand", "item variant"
   select: string; // columns returned after create / update
-  listFrom?: string; // read from this view instead of the table
+  listFrom?: keyof Schema['Views']; // read from this view instead of the table
   listSelect?: string;
   order: string[];
   readRole: 'user' | 'manager'; // who may list (writes are always admin-only)

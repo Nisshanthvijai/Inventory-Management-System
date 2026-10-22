@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db, rpcArgs } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
 import { assertPoLineAllowed } from '../../domain/po/po-line-rules';
 import { assertPoCancellable } from '../../domain/po/po-rules';
-import { PoStatus } from '../../domain/po/po-status';
+import { isPoStatus, PoStatus } from '../../domain/po/po-status';
+import { isPrLineStatus } from '../../domain/pr-lines/pr-line-status';
 import { PermissionService } from '../common/permission.service';
 import { CreatePoDto } from './po.dto';
 
@@ -13,7 +14,7 @@ import { CreatePoDto } from './po.dto';
 export class PoService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async list(db: SupabaseClient, user: AuthUser) {
+  async list(db: Db, user: AuthUser) {
     // RLS alone would give a requestor an empty list; a clear 403 says why.
     await this.permissions.require(db, user, 'po.view');
 
@@ -25,7 +26,7 @@ export class PoService {
     return data;
   }
 
-  async get(db: SupabaseClient, user: AuthUser, id: string) {
+  async get(db: Db, user: AuthUser, id: string) {
     await this.permissions.require(db, user, 'po.view');
 
     const { data: header, error } = await db
@@ -47,7 +48,7 @@ export class PoService {
     return { ...header, lines: lines ?? [] };
   }
 
-  async cancel(db: SupabaseClient, user: AuthUser, id: string) {
+  async cancel(db: Db, user: AuthUser, id: string) {
     await this.permissions.require(db, user, 'po.cancel');
 
     const { data: po, error } = await db
@@ -57,6 +58,7 @@ export class PoService {
       .maybeSingle();
     if (error) throw new UnexpectedError(error.message);
     if (!po) throw new NotFound('PO not found');
+    if (!isPoStatus(po.status)) throw new UnexpectedError(`Unknown PO status: ${po.status}`);
     assertPoCancellable(po.po_no, po.status);
 
     // `.eq('status', 'open')` makes this safe if the PO changed since we read it.
@@ -87,7 +89,7 @@ export class PoService {
     return result;
   }
 
-  async create(db: SupabaseClient, user: AuthUser, dto: CreatePoDto) {
+  async create(db: Db, user: AuthUser, dto: CreatePoDto) {
     await this.permissions.require(db, user, 'po.create');
 
     const prLineIds = dto.lines.map((l) => l.pr_line_id);
@@ -117,6 +119,7 @@ export class PoService {
 
     const orderedStock = new Map<string, number>();
     for (const o of ordered ?? []) {
+      if (o.pr_line_id === null) continue; // a view column, so typed nullable; never null here
       orderedStock.set(o.pr_line_id, (orderedStock.get(o.pr_line_id) ?? 0) + Number(o.ordered_stock_units));
     }
 
@@ -127,25 +130,35 @@ export class PoService {
       const variant = (variants ?? []).find((v) => v.variant_id === pr.variant_id);
       if (!variant) throw new NotFound(`Item variant not found for PR line ${line.pr_line_id}`);
 
+      // v_variants is a view, so every column is typed nullable; these are never null in the data.
+      const { code, stock_unit, purchase_unit } = variant;
+      if (code === null || stock_unit === null || purchase_unit === null) {
+        throw new UnexpectedError(`Item variant ${pr.variant_id} is missing its code or units`);
+      }
+      if (!isPrLineStatus(pr.status)) throw new UnexpectedError(`Unknown PR line status: ${pr.status}`);
+
       assertPoLineAllowed({
-        name: variant.code,
+        name: code,
         prStatus: pr.status,
         approved: Number(pr.approved_quantity),
         unitsPerPurchase: Number(variant.units_per_purchase),
-        stockUnit: variant.stock_unit,
-        purchaseUnit: variant.purchase_unit,
+        stockUnit: stock_unit,
+        purchaseUnit: purchase_unit,
         alreadyOrderedStock: orderedStock.get(line.pr_line_id) ?? 0,
         quantity: line.quantity,
       });
     }
 
-    const { data, error } = await db.rpc('create_po', {
-      p_vendor_id: dto.vendor_id,
-      p_lines: dto.lines,
-      p_payment_terms: dto.payment_terms ?? null,
-      p_comments: dto.comments ?? null,
-      p_po_date: dto.po_date ?? null,
-    });
+    const { data, error } = await db.rpc(
+      'create_po',
+      rpcArgs<'create_po'>({
+        p_vendor_id: dto.vendor_id,
+        p_lines: dto.lines,
+        p_payment_terms: dto.payment_terms ?? null,
+        p_comments: dto.comments ?? null,
+        p_po_date: dto.po_date ?? null,
+      }),
+    );
 
     if (error) {
       if (error.code === 'P0001' && error.message.includes('Vendor not found')) {

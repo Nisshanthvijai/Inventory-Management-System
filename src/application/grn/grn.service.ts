@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db, rpcArgs } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
@@ -10,20 +10,23 @@ import { CreateGrnDto } from './grn.dto';
 export class GrnService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async create(db: SupabaseClient, user: AuthUser, dto: CreateGrnDto) {
+  async create(db: Db, user: AuthUser, dto: CreateGrnDto) {
     // The database also requires a requestor to have a line on the PO.
     await this.permissions.require(db, user, 'grn.create');
 
     // Quantity limits, "already complete" and "PO must be open" are enforced by the database
     // (triggers and RLS) with clear messages; requestors cannot read PO tables to pre-check them.
-    const { data, error } = await db.rpc('create_grn', {
-      p_po_id: dto.po_id,
-      p_invoice_no: dto.invoice_no,
-      p_lines: dto.lines,
-      p_invoice_date: dto.invoice_date ?? null,
-      p_received_date: dto.received_date ?? null,
-      p_comments: dto.comments ?? null,
-    });
+    const { data, error } = await db.rpc(
+      'create_grn',
+      rpcArgs<'create_grn'>({
+        p_po_id: dto.po_id,
+        p_invoice_no: dto.invoice_no,
+        p_lines: dto.lines,
+        p_invoice_date: dto.invoice_date ?? null,
+        p_received_date: dto.received_date ?? null,
+        p_comments: dto.comments ?? null,
+      }),
+    );
 
     if (error) {
       if (error.code === 'P0001' && error.message.includes('already complete')) {
@@ -45,7 +48,7 @@ export class GrnService {
     return data as { grn_id: string; grn_no: string; lines: number };
   }
 
-  async list(db: SupabaseClient) {
+  async list(db: Db) {
     // Read the tables, not v_grn_lines: that view joins PO tables a requestor cannot read.
     // RLS shows a requestor their own receipts and a manager or admin all of them.
     const { data, error } = await db

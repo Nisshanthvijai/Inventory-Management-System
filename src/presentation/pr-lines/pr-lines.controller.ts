@@ -1,6 +1,6 @@
 import { Body, Controller, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Db } from '../../application/common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiZodBody } from '../common/api-zod-body';
 import { CurrentDb, CurrentUser } from '../common/current.decorators';
@@ -21,7 +21,7 @@ export class PrLinesController {
   })
   @ApiZodBody(decideLineSchema)
   decide(
-    @CurrentDb() db: SupabaseClient,
+    @CurrentDb() db: Db,
     @CurrentUser() user: AuthUser,
     @Param('id', new UuidPipe()) id: string,
     @Body(new ZodPipe(decideLineSchema)) dto: DecideLineDto,
