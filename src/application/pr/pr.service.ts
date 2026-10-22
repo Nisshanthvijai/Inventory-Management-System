@@ -1,74 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
-import { UnexpectedError } from '../common/errors';
-import { parseRpcResult } from '../common/rpc-result';
-import { CreatePrDto } from './pr.dto';
-import { PrCreated, prCreatedSchema, PrDetail, PrSummary } from './pr.types';
+import { NotFound } from '../../domain/common/errors';
 import { Session } from '../common/session';
-import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
+import { CreatePrDto } from './pr.dto';
+import { PrRepository } from './pr.repository';
+import { PrCreated, PrDetail, PrSummary } from './pr.types';
 
 @Injectable()
 export class PrService {
-  async create(session: Session, dto: CreatePrDto): Promise<PrCreated> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
-    const { data, error } = await db.rpc('create_pr', {
-      p_lines: dto.lines,
-      p_priority: dto.priority,
-    });
+  constructor(private readonly prs: PrRepository) {}
 
-    if (error) {
-      // P0001: the RPC raised a rule message. 42501: RLS said no. 23503: unknown variant.
-      if (error.code === 'P0001') throw new RuleViolation(error.message);
-      if (error.code === '42501') throw new NotAllowed('You cannot create a PR');
-      if (error.code === '23503') throw new RuleViolation('Unknown item variant');
-      throw new UnexpectedError(error.message);
-    }
-
-    return parseRpcResult(prCreatedSchema, data, 'create_pr');
+  /** Quantity rules and who may create a PR are enforced by the database (create_pr, RLS). */
+  create(session: Session, dto: CreatePrDto): Promise<PrCreated> {
+    return this.prs.create(session, dto);
   }
 
-  async list(session: Session): Promise<PrSummary[]> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
-    const { data, error } = await db
-      .from('purchase_requisition')
-      .select(
-        'id, pr_no, pr_date, priority, status, requested_by, created_at, requester:profile!purchase_requisition_requested_by_fkey(full_name)',
-      )
-      .order('created_at', { ascending: false });
-
-    if (error) throw new UnexpectedError(error.message);
-
-    return (data ?? []).map(({ requester, ...pr }) => {
-      const profile = Array.isArray(requester) ? requester[0] : requester;
-      return { ...pr, requested_by_name: profile?.full_name ?? null };
-    });
+  list(session: Session): Promise<PrSummary[]> {
+    return this.prs.list(session);
   }
 
   async get(session: Session, id: string): Promise<PrDetail> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
-    const { data: header, error } = await db
-      .from('purchase_requisition')
-      .select(
-        'id, pr_no, pr_date, priority, status, requested_by, created_at, requester:profile!purchase_requisition_requested_by_fkey(full_name)',
-      )
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw new UnexpectedError(error.message);
+    const header = await this.prs.findById(session, id);
     // RLS hides PRs the caller may not see, so "not yours" looks the same as "not there".
     if (!header) throw new NotFound('PR not found');
-
-    const { data: lines, error: linesError } = await db
-      .from('v_pr_lines')
-      .select('*')
-      .eq('pr_id', id)
-      .order('created_at')
-      .order('item_name');
-
-    if (linesError) throw new UnexpectedError(linesError.message);
-
-    const { requester, ...pr } = header;
-    const profile = Array.isArray(requester) ? requester[0] : requester;
-    return { ...pr, requested_by_name: profile?.full_name ?? null, lines: lines ?? [] };
+    const lines = await this.prs.findLines(session, id);
+    return { ...header, lines };
   }
 }
