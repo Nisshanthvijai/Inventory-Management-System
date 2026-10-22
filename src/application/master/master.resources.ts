@@ -1,28 +1,21 @@
 import { z } from 'zod';
-import { Database } from '../common/database.types';
+import { Action } from '../../domain/common/permissions';
 
-type Schema = Database['public'];
-
-/** Master-data tables, checked against the generated schema (a typo will not compile). */
-export type MasterTable = keyof Pick<
-  Schema['Tables'],
-  'uom' | 'brand' | 'item_category' | 'item_type' | 'item' | 'item_variant' | 'vendor'
->;
+/** The master-data resources. Each layer keys its own part of the config by these. */
+export const MASTER_KEYS = ['uoms', 'brands', 'categories', 'item-types', 'items', 'variants', 'vendors'] as const;
+export type MasterKey = (typeof MASTER_KEYS)[number];
 
 /**
- * One entry per master-data table. The generic service and the controller factory
- * read these, so every table gets the same list / create / update behaviour.
+ * The application's part of a master-data resource: its name in messages, who may list it and
+ * what a create / update body must look like. The URL path lives in presentation
+ * (master.routes.ts); the table and columns live in infrastructure (the master repository).
  * No defaults here: the database fills is_active, units_per_purchase and reorder_level.
  */
 export interface MasterResource {
-  path: string; // URL path under /api
-  table: MasterTable; // table written to
+  key: MasterKey;
   label: string; // used in messages: "brand", "item variant"
-  select: string; // columns returned after create / update
-  listFrom?: keyof Schema['Views']; // read from this view instead of the table
-  listSelect?: string;
-  order: string[];
-  readRole: 'user' | 'manager'; // who may list (writes are always admin-only)
+  /** Permission needed to list; none means any signed-in user. Writes always need 'master.write'. */
+  readPermission?: Action;
   create: z.ZodType;
   update: z.ZodType;
 }
@@ -46,61 +39,18 @@ function schemas(shape: z.ZodRawShape) {
 const named = schemas({ name: text, is_active: active });
 
 export const MASTER_RESOURCES: MasterResource[] = [
+  { key: 'uoms', label: 'unit', ...schemas({ code: text, name: text, is_active: active }) },
+  { key: 'brands', label: 'brand', ...named },
+  { key: 'categories', label: 'category', ...named },
+  { key: 'item-types', label: 'item type', ...named },
   {
-    path: 'uoms',
-    table: 'uom',
-    label: 'unit',
-    select: 'id, code, name, is_active, created_at',
-    order: ['code'],
-    readRole: 'user',
-    ...schemas({ code: text, name: text, is_active: active }),
-  },
-  {
-    path: 'brands',
-    table: 'brand',
-    label: 'brand',
-    select: 'id, name, is_active, created_at',
-    order: ['name'],
-    readRole: 'user',
-    ...named,
-  },
-  {
-    path: 'categories',
-    table: 'item_category',
-    label: 'category',
-    select: 'id, name, is_active, created_at',
-    order: ['name'],
-    readRole: 'user',
-    ...named,
-  },
-  {
-    path: 'item-types',
-    table: 'item_type',
-    label: 'item type',
-    select: 'id, name, is_active, created_at',
-    order: ['name'],
-    readRole: 'user',
-    ...named,
-  },
-  {
-    path: 'items',
-    table: 'item',
+    key: 'items',
     label: 'item',
-    select: 'id, name, description, category_id, is_active, created_at, updated_at',
-    order: ['name'],
-    readRole: 'user',
     ...schemas({ name: text, description: optionalText, category_id: z.uuid(), is_active: active }),
   },
   {
-    path: 'variants',
-    table: 'item_variant',
+    key: 'variants',
     label: 'item variant',
-    select:
-      'id, code, item_id, brand_id, type_id, inventory_uom_id, purchase_uom_id, units_per_purchase, reorder_level, is_active, created_at, updated_at',
-    listFrom: 'v_variants', // adds names, units and "orderable"
-    listSelect: '*',
-    order: ['item_name', 'code'],
-    readRole: 'user',
     ...schemas({
       code: text,
       item_id: z.uuid(),
@@ -114,13 +64,9 @@ export const MASTER_RESOURCES: MasterResource[] = [
     }),
   },
   {
-    path: 'vendors',
-    table: 'vendor',
+    key: 'vendors',
     label: 'vendor',
-    select:
-      'id, name, address, gst_no, contact_person, phone, email, is_active, created_at, updated_at',
-    order: ['name'],
-    readRole: 'manager', // vendors are only visible to managers and admins
+    readPermission: 'master.view-restricted', // vendors are only visible to managers and admins
     ...schemas({
       name: text,
       address: optionalText,
@@ -132,3 +78,9 @@ export const MASTER_RESOURCES: MasterResource[] = [
     }),
   },
 ];
+
+export function masterResource(key: MasterKey): MasterResource {
+  const resource = MASTER_RESOURCES.find((r) => r.key === key);
+  if (!resource) throw new Error(`Unknown master resource: ${key}`);
+  return resource;
+}

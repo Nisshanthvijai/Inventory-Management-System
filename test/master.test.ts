@@ -3,9 +3,14 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { MASTER_RESOURCES } from '../src/application/master/master.resources';
-import { setupApp } from '../src/setup';
+import { MASTER_TABLES } from '../src/infrastructure/supabase/repositories/supabase-master.repository';
 import { SupabaseService } from '../src/infrastructure/supabase/supabase.service';
+import { MASTER_PATHS } from '../src/presentation/master/master.routes';
+import { setupApp } from '../src/setup';
 import { makeFakeDb } from './fake-db';
+
+// Each resource as one test case: application config + its table (infrastructure) + its URL path.
+const CASES = MASTER_RESOURCES.map((r) => ({ ...r, ...MASTER_TABLES[r.key], path: MASTER_PATHS[r.key] }));
 
 const U = '11111111-1111-4111-8111-111111111111';
 const fake = makeFakeDb();
@@ -51,10 +56,10 @@ describe('master data', () => {
   beforeEach(() => fake.reset('admin'));
 
   it('has a valid body for every resource in this test', () => {
-    expect(Object.keys(validBody).sort()).toEqual(MASTER_RESOURCES.map((r) => r.path).sort());
+    expect(Object.keys(validBody).sort()).toEqual(CASES.map((r) => r.path).sort());
   });
 
-  describe.each(MASTER_RESOURCES)('/api/$path', (r) => {
+  describe.each(CASES)('/api/$path', (r) => {
     const url = `/api/${r.path}`;
     const label = r.label;
 
@@ -73,7 +78,7 @@ describe('master data', () => {
         expect(fake.order.mock.calls.map((c) => c[0])).toEqual(r.order);
       });
 
-      if (r.readRole === 'user') {
+      if (!r.readPermission) {
         it('allows a requestor', async () => {
           fake.reset('requestor');
           expect((await http().get(url).set(auth)).status).toBe(200);
