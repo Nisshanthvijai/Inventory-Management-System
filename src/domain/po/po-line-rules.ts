@@ -1,4 +1,5 @@
 import { RuleViolation } from '../common/errors';
+import { PrLineStatus } from '../pr-lines/pr-line-status';
 
 // Numbers from the database are exact decimals; compare with a tiny tolerance.
 const EPS = 1e-9;
@@ -10,7 +11,7 @@ export function allowedPoQuantity(approved: number, unitsPerPurchase: number): n
 
 export interface PoLineCheck {
   name: string; // variant code, used in messages
-  prStatus: string;
+  prStatus: PrLineStatus;
   approved: number; // approved quantity, in the stock unit
   unitsPerPurchase: number;
   stockUnit: string;
@@ -19,7 +20,7 @@ export interface PoLineCheck {
   quantity: number; // what the PO line asks for, in the purchase unit
 }
 
-/** Throws 400 unless this PO line may be ordered. Pure: no database, no HTTP. */
+/** Throws RuleViolation unless this PO line may be ordered. Pure: no database, no HTTP. */
 export function assertPoLineAllowed(c: PoLineCheck): void {
   if (c.prStatus !== 'accepted') {
     throw new RuleViolation(`${c.name}: only an accepted PR line can be ordered (this one is ${c.prStatus})`);

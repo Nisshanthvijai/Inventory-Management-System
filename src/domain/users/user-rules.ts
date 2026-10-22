@@ -10,7 +10,7 @@ export interface ProfileChanges {
 /**
  * Who may make this profile update. Returns the admin-only action it needs (it completes
  * "Only an admin can ..."), or null if callers may do it themselves (renaming their own profile).
- * Throws 403 if callers try to change their own role or active status: not even an admin may.
+ * Throws NotAllowed if callers try to change their own role or active status: not even an admin may.
  */
 export function adminActionForUserUpdate(
   changes: ProfileChanges,

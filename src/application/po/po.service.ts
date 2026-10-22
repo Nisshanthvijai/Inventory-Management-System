@@ -5,6 +5,7 @@ import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/comm
 import { UnexpectedError } from '../common/errors';
 import { assertPoLineAllowed } from '../../domain/po/po-line-rules';
 import { assertPoCancellable } from '../../domain/po/po-rules';
+import { PoStatus } from '../../domain/po/po-status';
 import { requireManager } from '../common/roles';
 import { CreatePoDto } from './po.dto';
 
@@ -59,9 +60,9 @@ export class PoService {
     // `.eq('status', 'open')` makes this safe if the PO changed since we read it.
     const { data: cancelled, error: updateError } = await db
       .from('purchase_order')
-      .update({ status: 'cancelled' })
+      .update({ status: 'cancelled' satisfies PoStatus })
       .eq('id', id)
-      .eq('status', 'open')
+      .eq('status', 'open' satisfies PoStatus)
       .select('id')
       .maybeSingle();
 
@@ -109,7 +110,7 @@ export class PoService {
       .from('v_po_lines')
       .select('pr_line_id, ordered_stock_units')
       .in('pr_line_id', prLineIds)
-      .neq('po_status', 'cancelled');
+      .neq('po_status', 'cancelled' satisfies PoStatus);
     if (orderedError) throw new UnexpectedError(orderedError.message);
 
     const orderedStock = new Map<string, number>();

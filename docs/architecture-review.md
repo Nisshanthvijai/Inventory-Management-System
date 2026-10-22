@@ -60,7 +60,7 @@ Review date: 2026-10-22. Scope: every file in `src/`, with import directions che
 ### Phase 1: clean up the domain layer (no behaviour change)
 
 - [x] 1. Domain errors (`RuleViolation`, `NotAllowed`, `NotFound`, `Conflict`) instead of `ApiError`; the filter maps them to HTTP; `ApiError` moves to presentation. (C2)
-- [ ] 2. `Role`, `PoStatus`, `PrLineStatus` types matching the database CHECK constraints. (C6, O)
+- [x] 2. `Role`, `PoStatus`, `PrLineStatus` types matching the database CHECK constraints. (C6, O)
 - [ ] 3. One permission table (`domain/common/permissions.ts`) with `assertCan(role, action)`; messages stay word for word. (O, authorization spread)
 
 ### Phase 2: auth and roles

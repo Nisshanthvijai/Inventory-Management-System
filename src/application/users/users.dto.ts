@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { ROLES } from '../../domain/common/role';
 
 export const updateUserSchema = z
   .strictObject({
     full_name: z.string().trim().min(1).optional(),
-    role: z.enum(['admin', 'manager', 'requestor']).optional(),
+    role: z.enum(ROLES).optional(),
     is_active: z.boolean().optional(),
   })
   .refine((o) => Object.keys(o).length > 0, 'Send at least one field to change');

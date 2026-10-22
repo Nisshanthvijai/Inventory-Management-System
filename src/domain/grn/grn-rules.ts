@@ -1,10 +1,11 @@
 import { NotAllowed } from '../common/errors';
+import { Role } from '../common/role';
 
 /**
- * Throws 403 unless this role may receive goods. A requestor or admin can; a manager cannot
+ * Throws NotAllowed unless this role may receive goods. A requestor or admin can; a manager cannot
  * (the database repeats this, and also requires a requestor to have a line on the PO).
  */
-export function assertCanReceiveGoods(role: string | null | undefined): void {
+export function assertCanReceiveGoods(role: Role | null | undefined): void {
   if (role === 'manager') {
     throw new NotAllowed('A manager cannot receive goods; a requestor or admin can');
   }
