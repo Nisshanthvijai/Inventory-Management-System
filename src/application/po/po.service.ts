@@ -2,11 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiError } from '../../domain/common/api-error';
+import { assertPoLineAllowed } from '../../domain/po/po-line-rules';
 import { requireManager } from '../common/roles';
 import { CreatePoDto } from './po.dto';
-
-// Numbers from the database are exact decimals; compare with a tiny tolerance.
-const EPS = 1e-9;
 
 @Injectable()
 export class PoService {
@@ -125,36 +123,17 @@ export class PoService {
 
       const variant = (variants ?? []).find((v) => v.variant_id === pr.variant_id);
       if (!variant) throw new ApiError(404, `Item variant not found for PR line ${line.pr_line_id}`);
-      const name = variant.code;
 
-      if (pr.status !== 'accepted') {
-        throw new ApiError(400, `${name}: only an accepted PR line can be ordered (this one is ${pr.status})`);
-      }
-
-      const units = Number(variant.units_per_purchase);
-      const approved = Number(pr.approved_quantity);
-
-      // Packs cannot be split.
-      if (units > 1 && !Number.isInteger(line.quantity)) {
-        throw new ApiError(
-          400,
-          `${name}: quantity must be a whole number of ${variant.purchase_unit} (1 ${variant.purchase_unit} = ${units} ${variant.stock_unit}); got ${line.quantity}`,
-        );
-      }
-
-      // Pack rounding: approved stock units are rounded UP to whole packs, then expressed in purchase units.
-      const allowed = units > 1 ? Math.ceil(approved / units) : approved / units;
-      const alreadyOrdered = (orderedStock.get(line.pr_line_id) ?? 0) / units;
-      const remaining = allowed - alreadyOrdered;
-
-      if (line.quantity > remaining + EPS) {
-        throw new ApiError(
-          400,
-          `${name}: you can order at most ${Math.max(remaining, 0)} ${variant.purchase_unit} more ` +
-            `(approved ${approved} ${variant.stock_unit} = ${allowed} ${variant.purchase_unit} rounded up to whole packs, ` +
-            `${alreadyOrdered} already ordered); got ${line.quantity}`,
-        );
-      }
+      assertPoLineAllowed({
+        name: variant.code,
+        prStatus: pr.status,
+        approved: Number(pr.approved_quantity),
+        unitsPerPurchase: Number(variant.units_per_purchase),
+        stockUnit: variant.stock_unit,
+        purchaseUnit: variant.purchase_unit,
+        alreadyOrderedStock: orderedStock.get(line.pr_line_id) ?? 0,
+        quantity: line.quantity,
+      });
     }
 
     const { data, error } = await db.rpc('create_po', {
