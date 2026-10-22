@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { Row } from '../../../application/common/database.types';
 import { UnexpectedError } from '../../../application/common/errors';
-import { parseRpcResult } from '../../../application/common/rpc-result';
+import { parseRpcResult } from '../rpc-result';
 import { Session } from '../../../application/common/session';
 import { CreatePrDto } from '../../../application/pr/pr.dto';
 import { PrRepository } from '../../../application/pr/pr.repository';

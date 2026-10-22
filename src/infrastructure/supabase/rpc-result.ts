@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UnexpectedError } from './errors';
+import { UnexpectedError } from '../../application/common/errors';
 
 /**
  * Checks what an RPC returned (the generated types say only `Json`) instead of casting it.
