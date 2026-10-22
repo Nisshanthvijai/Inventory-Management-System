@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiError } from '../../domain/common/api-error';
+import { assertManagerOrAdmin } from '../../domain/common/role-rules';
+import { assertApprovedWithinRequested, decisionFields } from '../../domain/pr-lines/pr-line-rules';
 import { DecideLineDto } from './pr-lines.dto';
 
 @Injectable()
@@ -17,23 +19,11 @@ export class PrLinesService {
     if (lineError) throw new ApiError(500, lineError.message);
     if (!line) throw new ApiError(404, 'PR line not found');
 
-    const requested = Number(line.quantity);
-    if (dto.status === 'accepted' && dto.approved_quantity > requested) {
-      throw new ApiError(
-        400,
-        `Approved quantity cannot exceed the requested quantity (${requested})`,
-      );
-    }
-
-    // Each decision also clears the fields that do not belong to it.
-    const patch =
-      dto.status === 'accepted'
-        ? { status: 'accepted', approved_quantity: dto.approved_quantity, rejection_comment: null }
-        : { status: 'rejected', approved_quantity: null, rejection_comment: dto.rejection_comment };
+    assertApprovedWithinRequested(dto, Number(line.quantity));
 
     const { data: updated, error } = await db
       .from('pr_line')
-      .update(patch)
+      .update(decisionFields(dto))
       .eq('id', id)
       .select('id')
       .maybeSingle();
@@ -65,8 +55,6 @@ export class PrLinesService {
       .eq('id', user.id)
       .maybeSingle();
     if (error) throw new ApiError(500, error.message);
-    if (data?.role !== 'manager' && data?.role !== 'admin') {
-      throw new ApiError(403, 'Only a manager or admin can decide on a PR line');
-    }
+    assertManagerOrAdmin(data?.role, 'decide on a PR line');
   }
 }
