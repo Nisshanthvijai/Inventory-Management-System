@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ApiError } from '../../domain/common/api-error';
+import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
+import { UnexpectedError } from '../common/errors';
 import { CreatePrDto } from './pr.dto';
 
 @Injectable()
@@ -13,10 +14,10 @@ export class PrService {
 
     if (error) {
       // P0001: the RPC raised a rule message. 42501: RLS said no. 23503: unknown variant.
-      if (error.code === 'P0001') throw new ApiError(400, error.message);
-      if (error.code === '42501') throw new ApiError(403, 'You cannot create a PR');
-      if (error.code === '23503') throw new ApiError(400, 'Unknown item variant');
-      throw new ApiError(500, error.message);
+      if (error.code === 'P0001') throw new RuleViolation(error.message);
+      if (error.code === '42501') throw new NotAllowed('You cannot create a PR');
+      if (error.code === '23503') throw new RuleViolation('Unknown item variant');
+      throw new UnexpectedError(error.message);
     }
 
     return data as { pr_id: string; pr_no: string; lines: number };
@@ -30,7 +31,7 @@ export class PrService {
       )
       .order('created_at', { ascending: false });
 
-    if (error) throw new ApiError(500, error.message);
+    if (error) throw new UnexpectedError(error.message);
 
     return (data ?? []).map(({ requester, ...pr }) => {
       const profile = Array.isArray(requester) ? requester[0] : requester;
@@ -47,9 +48,9 @@ export class PrService {
       .eq('id', id)
       .maybeSingle();
 
-    if (error) throw new ApiError(500, error.message);
+    if (error) throw new UnexpectedError(error.message);
     // RLS hides PRs the caller may not see, so "not yours" looks the same as "not there".
-    if (!header) throw new ApiError(404, 'PR not found');
+    if (!header) throw new NotFound('PR not found');
 
     const { data: lines, error: linesError } = await db
       .from('v_pr_lines')
@@ -58,7 +59,7 @@ export class PrService {
       .order('created_at')
       .order('item_name');
 
-    if (linesError) throw new ApiError(500, linesError.message);
+    if (linesError) throw new UnexpectedError(linesError.message);
 
     const { requester, ...pr } = header;
     const profile = Array.isArray(requester) ? requester[0] : requester;

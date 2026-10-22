@@ -6,11 +6,22 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { ApiError } from '../../domain/common/api-error';
+import { AppError, ErrorKind } from '../../domain/common/errors';
+import { ApiError } from './api-error';
 
 interface JsonResponse {
   status(code: number): { json(body: unknown): void };
 }
+
+/** The only place that knows which HTTP status each kind of app error becomes. */
+const STATUS_BY_KIND: Record<ErrorKind, number> = {
+  rule: HttpStatus.BAD_REQUEST,
+  unauthenticated: HttpStatus.UNAUTHORIZED,
+  not_allowed: HttpStatus.FORBIDDEN,
+  not_found: HttpStatus.NOT_FOUND,
+  conflict: HttpStatus.CONFLICT,
+  unexpected: HttpStatus.INTERNAL_SERVER_ERROR,
+};
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -18,6 +29,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse<JsonResponse>();
+
+    if (exception instanceof AppError) {
+      const status = STATUS_BY_KIND[exception.kind];
+      res.status(status).json({
+        statusCode: status,
+        error: HttpStatus[status],
+        message: exception.message,
+      });
+      return;
+    }
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();

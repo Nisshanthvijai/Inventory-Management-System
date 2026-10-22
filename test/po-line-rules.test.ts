@@ -1,4 +1,4 @@
-import { ApiError } from '../src/domain/common/api-error';
+import { RuleViolation } from '../src/domain/common/errors';
 import { allowedPoQuantity, assertPoLineAllowed, PoLineCheck } from '../src/domain/po/po-line-rules';
 
 // 1 box = 12 pcs; 24 pcs approved = 2 boxes.
@@ -46,8 +46,7 @@ describe('assertPoLineAllowed', () => {
     try {
       check({ prStatus: 'rejected' })();
     } catch (e) {
-      expect(e).toBeInstanceOf(ApiError);
-      expect((e as ApiError).getStatus()).toBe(400);
+      expect(e).toBeInstanceOf(RuleViolation);
     }
   });
 

@@ -1,4 +1,4 @@
-import { ApiError } from '../src/domain/common/api-error';
+import { NotAllowed } from '../src/domain/common/errors';
 import { adminActionForUserUpdate } from '../src/domain/users/user-rules';
 
 const ME = 'user-me';
@@ -30,8 +30,7 @@ describe('adminActionForUserUpdate', () => {
       try {
         run();
       } catch (e) {
-        expect(e).toBeInstanceOf(ApiError);
-        expect((e as ApiError).getStatus()).toBe(403);
+        expect(e).toBeInstanceOf(NotAllowed);
       }
     },
   );

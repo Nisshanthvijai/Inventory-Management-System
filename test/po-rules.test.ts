@@ -1,4 +1,4 @@
-import { ApiError } from '../src/domain/common/api-error';
+import { Conflict } from '../src/domain/common/errors';
 import { assertPoCancellable } from '../src/domain/po/po-rules';
 
 describe('assertPoCancellable', () => {
@@ -12,8 +12,7 @@ describe('assertPoCancellable', () => {
     try {
       run();
     } catch (e) {
-      expect(e).toBeInstanceOf(ApiError);
-      expect((e as ApiError).getStatus()).toBe(409);
+      expect(e).toBeInstanceOf(Conflict);
     }
   });
 });

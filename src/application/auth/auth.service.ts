@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ApiError } from '../../domain/common/api-error';
+import { Unauthenticated } from '../common/errors';
 import { AuthProvider } from './auth-provider';
 import { LoginDto } from './auth.dto';
 
@@ -9,7 +9,7 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const result = await this.provider.signIn(dto.email, dto.password);
-    if (!result) throw new ApiError(401, 'Invalid email or password');
+    if (!result) throw new Unauthenticated('Invalid email or password');
     return result;
   }
 }

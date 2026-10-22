@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
-import { ApiError } from '../../domain/common/api-error';
+import { Conflict, NotAllowed, RuleViolation } from '../../domain/common/errors';
+import { UnexpectedError } from '../common/errors';
 import { assertCanReceiveGoods } from '../../domain/grn/grn-rules';
 import { CreateGrnDto } from './grn.dto';
 
@@ -23,20 +24,19 @@ export class GrnService {
 
     if (error) {
       if (error.code === 'P0001' && error.message.includes('already complete')) {
-        throw new ApiError(409, error.message);
+        throw new Conflict(error.message);
       }
-      if (error.code === 'P0001' || error.code === '23514') throw new ApiError(400, error.message);
+      if (error.code === 'P0001' || error.code === '23514') throw new RuleViolation(error.message);
       if (error.code === '42501') {
-        throw new ApiError(
-          403,
+        throw new NotAllowed(
           'You cannot receive goods on this PO: it must be open or partially received (not fully received or cancelled), and a requestor needs one of their own lines on it',
         );
       }
       if (error.code === '23503') {
-        throw new ApiError(400, 'The PO or a PO line does not exist, or a line does not belong to this PO');
+        throw new RuleViolation('The PO or a PO line does not exist, or a line does not belong to this PO');
       }
-      if (error.code === '23505') throw new ApiError(409, 'This PO line is already on this GRN');
-      throw new ApiError(500, error.message);
+      if (error.code === '23505') throw new Conflict('This PO line is already on this GRN');
+      throw new UnexpectedError(error.message);
     }
 
     return data as { grn_id: string; grn_no: string; lines: number };
@@ -53,7 +53,7 @@ export class GrnService {
           'lines:grn_line(id, po_line_id, variant_id, received_quantity, completes_line)',
       )
       .order('created_at', { ascending: false });
-    if (error) throw new ApiError(500, error.message);
+    if (error) throw new UnexpectedError(error.message);
 
     return ((data ?? []) as unknown as Array<Record<string, unknown>>).map(
       ({ receiver, ...grn }) => {
@@ -73,7 +73,7 @@ export class GrnService {
       .select('role')
       .eq('id', user.id)
       .maybeSingle();
-    if (error) throw new ApiError(500, error.message);
+    if (error) throw new UnexpectedError(error.message);
     assertCanReceiveGoods(data?.role);
   }
 }

@@ -1,11 +1,11 @@
-import { ApiError } from '../src/domain/common/api-error';
+import { AppError } from '../src/domain/common/errors';
 import { assertCanReceiveGoods } from '../src/domain/grn/grn-rules';
 
 const statusOf = (fn: () => void) => {
   try {
     fn();
   } catch (e) {
-    return e instanceof ApiError ? e.getStatus() : 'not an ApiError';
+    return e instanceof AppError ? e.kind : 'not an AppError';
   }
   return 'no error';
 };
@@ -19,11 +19,11 @@ describe('assertCanReceiveGoods', () => {
     expect(() => assertCanReceiveGoods('manager')).toThrow(
       'A manager cannot receive goods; a requestor or admin can',
     );
-    expect(statusOf(() => assertCanReceiveGoods('manager'))).toBe(403);
+    expect(statusOf(() => assertCanReceiveGoods('manager'))).toBe('not_allowed');
   });
 
   it.each([null, undefined, 'someone-else'])('refuses %s', (role) => {
     expect(() => assertCanReceiveGoods(role)).toThrow('Only a requestor or admin can receive goods');
-    expect(statusOf(() => assertCanReceiveGoods(role))).toBe(403);
+    expect(statusOf(() => assertCanReceiveGoods(role))).toBe('not_allowed');
   });
 });

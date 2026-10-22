@@ -34,18 +34,18 @@ Reference solution (answer key, read-only, do not copy-paste from it blindly): `
 ```
 src/
   main.ts, setup.ts, app.module.ts, swagger.ts
-  domain/common/          api-error.ts, auth-user.ts, role-rules.ts   (no imports from other layers)
-  domain/<feature>/       *-rules.ts   (pure business rules: plain values in, result or ApiError out)
+  domain/common/          errors.ts, auth-user.ts, role-rules.ts   (no imports from other layers or frameworks)
+  domain/<feature>/       *-rules.ts   (pure business rules: plain values in, result or a domain error out)
                           po/po-line-rules.ts, po/po-rules.ts, pr-lines/pr-line-rules.ts,
                           grn/grn-rules.ts, users/user-rules.ts
   application/<feature>/  *.service.ts, *.dto.ts (zod)    (business rules; master.resources.ts)
   application/auth/       auth-provider.ts                (AuthProvider = port: signIn(), verifyToken(); null on failure)
-  application/common/     roles.ts, db-factory.ts         (DbFactory = port: anon(), forUser(token))
+  application/common/     roles.ts, db-factory.ts, errors.ts   (DbFactory = port: anon(), forUser(token))
   infrastructure/supabase/ supabase.service.ts (implements DbFactory), supabase-auth.provider.ts
                           (implements AuthProvider), supabase.module.ts (@Global)
   presentation/<feature>/ *.controller.ts, *.module.ts    (HTTP only)
   presentation/common/    auth.guard.ts, authed-request.ts, public.decorator.ts, current.decorators.ts,
-                          zod.pipe.ts, uuid.pipe.ts, all-exceptions.filter.ts, api-zod-body.ts
+                          zod.pipe.ts, uuid.pipe.ts, all-exceptions.filter.ts, api-zod-body.ts, api-error.ts
 test/                     one vitest + supertest file per area, fake-db.ts
 ```
 Dependency direction: presentation → application → domain; infrastructure → application (implements its ports) → domain. Never the reverse.
@@ -54,14 +54,15 @@ presentation never imports infrastructure: inject `DbFactory` / `AuthProvider`, 
 Login and token checks go through `AuthProvider` (no Supabase API in `AuthService` or the guard). Queries and RPCs still use the `SupabaseClient` from `DbFactory.forUser`, so only auth is swappable, not the database.
 `app.module.ts` is the composition root: the only file that imports every layer (it registers `SupabaseModule` once; it is `@Global`).
 Tests override `SupabaseService`; `DbFactory` follows it because of `useExisting`.
-`domain/` imports nothing from the other layers. One deliberate exception: `ApiError` extends Nest's `HttpException`, because the filter relies on it. `AuthedRequest` (HTTP + SupabaseClient) lives in presentation; `AuthUser` lives in domain.
-Domain rules: a check that uses only plain values (status, quantities, units, roles) goes in `domain/<feature>/` as a pure function with a unit test in `test/`; a rule used by more than one feature goes in `domain/common/`. Services load data, call the rule, and keep: checks right after a query (404s), DB error code → HTTP mapping, trivial one-liners.
+`domain/` imports nothing from the other layers or from any framework.
+Errors: domain rules and services throw app errors, never HTTP ones: `RuleViolation`, `NotAllowed`, `NotFound`, `Conflict` (domain/common/errors.ts), `Unauthenticated`, `UnexpectedError` (application/common/errors.ts). `AllExceptionsFilter` is the only place that maps an error kind to an HTTP status. `ApiError` (an `HttpException`) lives in presentation and is used only by `ZodPipe`. `AuthedRequest` (HTTP + SupabaseClient) lives in presentation; `AuthUser` lives in domain.
+Domain rules: a check that uses only plain values (status, quantities, units, roles) goes in `domain/<feature>/` as a pure function with a unit test in `test/`; a rule used by more than one feature goes in `domain/common/`. Services load data, call the rule, and keep: checks right after a query (404s), DB error code → app error mapping, trivial one-liners.
 New files go in the layer that matches the table above. `tsc` does not check `test/`, so run `npm test` after moving files.
 
 ## Rules of the project
 - NEVER use the service_role key. Always forward the user's JWT (`SupabaseService.forUser`).
 - Controllers do HTTP only (one or two lines per method). Business rules live in services.
-- Services take `(db, ...)` and never build HTTP responses; they throw `ApiError`.
+- Services take `(db, ...)` and never build HTTP responses; they throw app errors (see above), never `ApiError` or Nest exceptions.
 - Units: PR and stock use the stock unit; PO and GRN use the purchase unit. Stock units = purchase qty × `units_per_purchase`.
 - Pack rounding: allowed PO qty = ceil(approved / units_per_purchase) when units_per_purchase > 1.
 - Roles: admin, manager, requestor. Requestors never see prices (use `get_my_po_lines`).

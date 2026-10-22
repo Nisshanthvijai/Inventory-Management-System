@@ -1,4 +1,4 @@
-import { ApiError } from '../common/api-error';
+import { RuleViolation } from '../common/errors';
 
 /** A manager's decision on one PR line. Same shape as DecideLineDto. */
 export type LineDecision =
@@ -8,7 +8,7 @@ export type LineDecision =
 /** Throws 400 if an acceptance approves more than was requested. */
 export function assertApprovedWithinRequested(decision: LineDecision, requested: number): void {
   if (decision.status === 'accepted' && decision.approved_quantity > requested) {
-    throw new ApiError(400, `Approved quantity cannot exceed the requested quantity (${requested})`);
+    throw new RuleViolation(`Approved quantity cannot exceed the requested quantity (${requested})`);
   }
 }
 

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
-import { ApiError } from '../../domain/common/api-error';
+import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
+import { UnexpectedError } from '../common/errors';
 import { assertApprovedWithinRequested, decisionFields } from '../../domain/pr-lines/pr-line-rules';
 import { requireManager } from '../common/roles';
 import { DecideLineDto } from './pr-lines.dto';
@@ -16,8 +17,8 @@ export class PrLinesService {
       .select('id, quantity')
       .eq('id', id)
       .maybeSingle();
-    if (lineError) throw new ApiError(500, lineError.message);
-    if (!line) throw new ApiError(404, 'PR line not found');
+    if (lineError) throw new UnexpectedError(lineError.message);
+    if (!line) throw new NotFound('PR line not found');
 
     assertApprovedWithinRequested(dto, Number(line.quantity));
 
@@ -30,13 +31,13 @@ export class PrLinesService {
 
     if (error) {
       if (error.code === 'P0001' && error.message.includes('already on a PO')) {
-        throw new ApiError(409, 'This line is already on a PO and can no longer be changed');
+        throw new Conflict('This line is already on a PO and can no longer be changed');
       }
-      if (error.code === 'P0001' || error.code === '23514') throw new ApiError(400, error.message);
-      if (error.code === '42501') throw new ApiError(403, 'You cannot decide on this line');
-      throw new ApiError(500, error.message);
+      if (error.code === 'P0001' || error.code === '23514') throw new RuleViolation(error.message);
+      if (error.code === '42501') throw new NotAllowed('You cannot decide on this line');
+      throw new UnexpectedError(error.message);
     }
-    if (!updated) throw new ApiError(403, 'You cannot decide on this line');
+    if (!updated) throw new NotAllowed('You cannot decide on this line');
 
     // Re-read from the view: it carries the line's new status and the PR's recalculated status.
     const { data: result, error: readError } = await db
@@ -44,7 +45,7 @@ export class PrLinesService {
       .select('*')
       .eq('pr_line_id', id)
       .maybeSingle();
-    if (readError) throw new ApiError(500, readError.message);
+    if (readError) throw new UnexpectedError(readError.message);
     return result;
   }
 }

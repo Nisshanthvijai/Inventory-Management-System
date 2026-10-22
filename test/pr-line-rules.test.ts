@@ -1,4 +1,4 @@
-import { ApiError } from '../src/domain/common/api-error';
+import { RuleViolation } from '../src/domain/common/errors';
 import { assertApprovedWithinRequested, decisionFields } from '../src/domain/pr-lines/pr-line-rules';
 
 describe('assertApprovedWithinRequested', () => {
@@ -10,11 +10,11 @@ describe('assertApprovedWithinRequested', () => {
   it('rejects approving more than was requested, with a 400', () => {
     const run = () => assertApprovedWithinRequested({ status: 'accepted', approved_quantity: 6 }, 5);
     expect(run).toThrow('Approved quantity cannot exceed the requested quantity (5)');
-    expect(run).toThrow(ApiError);
+    expect(run).toThrow(RuleViolation);
     try {
       run();
     } catch (e) {
-      expect((e as ApiError).getStatus()).toBe(400);
+      expect(e).toBeInstanceOf(RuleViolation);
     }
   });
 

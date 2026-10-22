@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
-import { ApiError } from '../../domain/common/api-error';
+import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
+import { UnexpectedError } from '../common/errors';
 import { requireAdmin } from '../common/roles';
 import { SetStockDto } from './stock.dto';
 
@@ -14,7 +15,7 @@ export class StockService {
       .order('item_name')
       .order('variant_code');
 
-    if (error) throw new ApiError(500, error.message);
+    if (error) throw new UnexpectedError(error.message);
     return data;
   }
 
@@ -29,18 +30,18 @@ export class StockService {
       .select('id')
       .maybeSingle();
     if (error) {
-      if (error.code === '23514') throw new ApiError(400, error.message);
-      if (error.code === '42501') throw new ApiError(403, 'Only an admin can change stock');
-      throw new ApiError(500, error.message);
+      if (error.code === '23514') throw new RuleViolation(error.message);
+      if (error.code === '42501') throw new NotAllowed('Only an admin can change stock');
+      throw new UnexpectedError(error.message);
     }
-    if (!data) throw new ApiError(404, 'Stock row not found');
+    if (!data) throw new NotFound('Stock row not found');
 
     const { data: row, error: readError } = await db
       .from('v_stock')
       .select('*')
       .eq('stock_id', id)
       .maybeSingle();
-    if (readError) throw new ApiError(500, readError.message);
+    if (readError) throw new UnexpectedError(readError.message);
     return row;
   }
 }

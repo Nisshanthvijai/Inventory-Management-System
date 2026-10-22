@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
-import { ApiError } from '../../domain/common/api-error';
+import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
+import { UnexpectedError } from '../common/errors';
 import { adminActionForUserUpdate } from '../../domain/users/user-rules';
 import { requireAdmin, requireManager } from '../common/roles';
 import { UpdateUserDto } from './users.dto';
@@ -22,8 +23,8 @@ export class UsersService {
       .eq('id', user.id)
       .maybeSingle();
 
-    if (error) throw new ApiError(403, error.message);
-    if (!data) throw new ApiError(403, 'No profile for this user');
+    if (error) throw new NotAllowed(error.message);
+    if (!data) throw new NotAllowed('No profile for this user');
 
     return { ...data, email: user.email };
   }
@@ -31,7 +32,7 @@ export class UsersService {
   async list(db: SupabaseClient, user: AuthUser) {
     await requireManager(db, user, 'list users');
     const { data, error } = await db.from('profile').select(COLUMNS).order('full_name');
-    if (error) throw new ApiError(500, error.message);
+    if (error) throw new UnexpectedError(error.message);
     return data ?? [];
   }
 
@@ -48,11 +49,11 @@ export class UsersService {
 
     if (error) {
       // The profile_guard trigger repeats the role rules above.
-      if (error.code === 'P0001' || error.code === '42501') throw new ApiError(403, error.message);
-      if (error.code === '23514') throw new ApiError(400, error.message);
-      throw new ApiError(500, error.message);
+      if (error.code === 'P0001' || error.code === '42501') throw new NotAllowed(error.message);
+      if (error.code === '23514') throw new RuleViolation(error.message);
+      throw new UnexpectedError(error.message);
     }
-    if (!data) throw new ApiError(404, 'User not found');
+    if (!data) throw new NotFound('User not found');
     return data;
   }
 }

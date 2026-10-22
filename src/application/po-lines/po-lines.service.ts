@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ApiError } from '../../domain/common/api-error';
+import { UnexpectedError } from '../common/errors';
 
 @Injectable()
 export class PoLinesService {
@@ -10,7 +10,7 @@ export class PoLinesService {
    */
   async mine(db: SupabaseClient) {
     const { data, error } = await db.rpc('get_my_po_lines');
-    if (error) throw new ApiError(500, error.message);
+    if (error) throw new UnexpectedError(error.message);
     return data ?? [];
   }
 }

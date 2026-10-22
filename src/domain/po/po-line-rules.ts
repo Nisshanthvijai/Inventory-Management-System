@@ -1,4 +1,4 @@
-import { ApiError } from '../common/api-error';
+import { RuleViolation } from '../common/errors';
 
 // Numbers from the database are exact decimals; compare with a tiny tolerance.
 const EPS = 1e-9;
@@ -22,13 +22,12 @@ export interface PoLineCheck {
 /** Throws 400 unless this PO line may be ordered. Pure: no database, no HTTP. */
 export function assertPoLineAllowed(c: PoLineCheck): void {
   if (c.prStatus !== 'accepted') {
-    throw new ApiError(400, `${c.name}: only an accepted PR line can be ordered (this one is ${c.prStatus})`);
+    throw new RuleViolation(`${c.name}: only an accepted PR line can be ordered (this one is ${c.prStatus})`);
   }
 
   // Packs cannot be split.
   if (c.unitsPerPurchase > 1 && !Number.isInteger(c.quantity)) {
-    throw new ApiError(
-      400,
+    throw new RuleViolation(
       `${c.name}: quantity must be a whole number of ${c.purchaseUnit} (1 ${c.purchaseUnit} = ${c.unitsPerPurchase} ${c.stockUnit}); got ${c.quantity}`,
     );
   }
@@ -38,8 +37,7 @@ export function assertPoLineAllowed(c: PoLineCheck): void {
   const remaining = allowed - alreadyOrdered;
 
   if (c.quantity > remaining + EPS) {
-    throw new ApiError(
-      400,
+    throw new RuleViolation(
       `${c.name}: you can order at most ${Math.max(remaining, 0)} ${c.purchaseUnit} more ` +
         `(approved ${c.approved} ${c.stockUnit} = ${allowed} ${c.purchaseUnit} rounded up to whole packs, ` +
         `${alreadyOrdered} already ordered); got ${c.quantity}`,

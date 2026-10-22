@@ -1,4 +1,4 @@
-import { ApiError } from '../common/api-error';
+import { NotAllowed } from '../common/errors';
 
 /**
  * Throws 403 unless this role may receive goods. A requestor or admin can; a manager cannot
@@ -6,9 +6,9 @@ import { ApiError } from '../common/api-error';
  */
 export function assertCanReceiveGoods(role: string | null | undefined): void {
   if (role === 'manager') {
-    throw new ApiError(403, 'A manager cannot receive goods; a requestor or admin can');
+    throw new NotAllowed('A manager cannot receive goods; a requestor or admin can');
   }
   if (role !== 'requestor' && role !== 'admin') {
-    throw new ApiError(403, 'Only a requestor or admin can receive goods');
+    throw new NotAllowed('Only a requestor or admin can receive goods');
   }
 }

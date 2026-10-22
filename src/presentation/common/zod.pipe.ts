@@ -1,6 +1,6 @@
 import { PipeTransform } from '@nestjs/common';
 import { ZodType } from 'zod';
-import { ApiError } from '../../domain/common/api-error';
+import { ApiError } from './api-error';
 
 export class ZodPipe<T> implements PipeTransform<unknown, T> {
   constructor(private readonly schema: ZodType<T>) {}

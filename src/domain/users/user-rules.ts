@@ -1,4 +1,4 @@
-import { ApiError } from '../common/api-error';
+import { NotAllowed } from '../common/errors';
 
 /** The profile fields an update may change. Same shape as UpdateUserDto. */
 export interface ProfileChanges {
@@ -20,7 +20,7 @@ export function adminActionForUserUpdate(
   const changesAccess = changes.role !== undefined || changes.is_active !== undefined;
   if (changesAccess) {
     if (targetId === callerId) {
-      throw new ApiError(403, 'You cannot change your own role or active status');
+      throw new NotAllowed('You cannot change your own role or active status');
     }
     return 'change a role or deactivate a user';
   }
