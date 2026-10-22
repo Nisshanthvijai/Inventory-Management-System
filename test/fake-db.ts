@@ -16,7 +16,7 @@ export function makeFakeDb() {
     then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
       Promise.resolve(listResult()).then(resolve, reject),
   };
-  const listSelect = vi.fn(() => listBuilder);
+  const listSelect = vi.fn((_cols: string) => listBuilder);
 
   // create: insert(dto).select(cols).single()
   const insertSingle = vi.fn();
