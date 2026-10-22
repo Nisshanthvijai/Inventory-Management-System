@@ -98,6 +98,44 @@ Review date: 2026-10-22. Scope: every file in `src/`, with import directions che
 | 4 | ~8.5 |
 | 5 | ~8.5 to 9 |
 
+## Second review (after phase 5, 2026-10-22)
+
+### Mechanical audit (all clean)
+
+- 99 source files, 28 test files: 0 unresolved imports, 0 layer-rule violations (internal layers and allowed packages per layer), 0 import cycles.
+- Strict compile (`noUnusedLocals`, `noUnusedParameters`, tests and e2e included): no unused imports. It found 3 type errors in `test/` (fixed); `tsc` and `npm run build` only cover `src/`.
+- 12 exports are not imported by another file; all are used inside their own file, none is dead.
+- Built server boots with the real `SupabaseService`: dependency injection resolves, 39 routes mapped, protected routes answer 401 without a token.
+- Casts in `src/`: 5 (3 type-guard `includes`, `rpcArgs`, `untyped`), plus 2 on untyped input (filter body, Swagger schema). No `any`, no `@ts-ignore`.
+
+### Scores
+
+| Area | Before | Now |
+|---|---|---|
+| Clean Architecture (layers and boundaries) | 6 | 8.5 |
+| S: Single Responsibility | 7 | 8.5 |
+| O: Open/Closed | 7 | 8 |
+| L: Liskov Substitution | 6 | 7 |
+| I: Interface Segregation | 6 | 8 |
+| D: Dependency Inversion | 5 | 8.5 |
+| **Overall** | **6** | **8** |
+
+### Remaining flaws
+
+| ID | Finding | Severity |
+|---|---|---|
+| N1 | No test uses a repository port. 16 test files mock Supabase query chains through the whole app, so services are never tested alone and the ports give no testing benefit; a repository refactor breaks many tests. | Medium |
+| N2 | `AuthProvider` contract (L): a network failure looks like a bad token or password (declined fix, step 5). Each request also calls Supabase auth, so an outage means mass 401s. | Medium |
+| N3 | Domain is rules on primitives only: no entities or value objects (PR, PO, GRN). | Low to medium |
+| N4 | 11 repository sites pass database text to the client on 4xx. P0001 trigger messages are written for users; `23514` / `22P02` text exposes constraint names (master, stock, GRN, users). | Low to medium |
+| N5 | `PoService.cancel`, `PrLinesService.decide`, `StockService.setQuantity` return `X \| null`; if the read-back finds nothing the client gets an empty 200. | Low |
+| N6 | Each repository hand-writes its own SQLSTATE to error switch (duplication). | Low |
+| N7 | Master data is typed `unknown` / `object` through service and repository. | Low |
+| N8 | `PrLinesService` imports `PrLineView` from `pr/pr.types` (cross-feature coupling). | Low |
+| N9 | `PermissionService` is registered by `presentation/common/CommonModule` (an application provider wired in presentation). | Low |
+| N10 | `AuthProvider` bundles `signIn` (auth service) and `verifyToken` (guard): two roles in one port (I). | Low |
+| N11 | Not architecture: no login rate limit, 500 logs carry no route or request id, `tsc` does not cover `test/`. | Info |
+
 ## Progress log
 
 - 2026-10-22: review written; phases 1 to 3 started on branch `arch-phase-1-3`.
