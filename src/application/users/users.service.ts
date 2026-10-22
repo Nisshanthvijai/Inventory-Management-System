@@ -3,8 +3,8 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
-import { adminActionForUserUpdate } from '../../domain/users/user-rules';
-import { requireAdmin, requireManager } from '../common/roles';
+import { permissionForUserUpdate } from '../../domain/users/user-rules';
+import { requirePermission } from '../common/roles';
 import { UpdateUserDto } from './users.dto';
 
 const COLUMNS = 'id, full_name, role, is_active, created_at';
@@ -30,15 +30,15 @@ export class UsersService {
   }
 
   async list(db: SupabaseClient, user: AuthUser) {
-    await requireManager(db, user, 'list users');
+    await requirePermission(db, user, 'user.list');
     const { data, error } = await db.from('profile').select(COLUMNS).order('full_name');
     if (error) throw new UnexpectedError(error.message);
     return data ?? [];
   }
 
   async update(db: SupabaseClient, user: AuthUser, id: string, dto: UpdateUserDto) {
-    const adminAction = adminActionForUserUpdate(dto, id, user.id);
-    if (adminAction) await requireAdmin(db, user, adminAction);
+    const permission = permissionForUserUpdate(dto, id, user.id);
+    if (permission) await requirePermission(db, user, permission);
 
     const { data, error } = await db
       .from('profile')

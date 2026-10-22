@@ -4,13 +4,13 @@ import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
 import { assertApprovedWithinRequested, decisionFields } from '../../domain/pr-lines/pr-line-rules';
-import { requireManager } from '../common/roles';
+import { requirePermission } from '../common/roles';
 import { DecideLineDto } from './pr-lines.dto';
 
 @Injectable()
 export class PrLinesService {
   async decide(db: SupabaseClient, user: AuthUser, id: string, dto: DecideLineDto) {
-    await requireManager(db, user, 'decide on a PR line');
+    await requirePermission(db, user, 'pr-line.decide');
 
     const { data: line, error: lineError } = await db
       .from('pr_line')

@@ -34,10 +34,11 @@ Reference solution (answer key, read-only, do not copy-paste from it blindly): `
 ```
 src/
   main.ts, setup.ts, app.module.ts, swagger.ts
-  domain/common/          errors.ts, auth-user.ts, role-rules.ts   (no imports from other layers or frameworks)
-  domain/<feature>/       *-rules.ts   (pure business rules: plain values in, result or a domain error out)
-                          po/po-line-rules.ts, po/po-rules.ts, pr-lines/pr-line-rules.ts,
-                          grn/grn-rules.ts, users/user-rules.ts
+  domain/common/          errors.ts, auth-user.ts, role.ts (Role), permissions.ts (PERMISSIONS, assertCan)
+                          (no imports from other layers or frameworks)
+  domain/<feature>/       *-rules.ts, *-status.ts   (pure business rules and status types)
+                          po/po-line-rules.ts, po/po-rules.ts, po/po-status.ts,
+                          pr-lines/pr-line-rules.ts, pr-lines/pr-line-status.ts, users/user-rules.ts
   application/<feature>/  *.service.ts, *.dto.ts (zod)    (business rules; master.resources.ts)
   application/auth/       auth-provider.ts                (AuthProvider = port: signIn(), verifyToken(); null on failure)
   application/common/     roles.ts, db-factory.ts, errors.ts   (DbFactory = port: anon(), forUser(token))
@@ -66,6 +67,7 @@ New files go in the layer that matches the table above. `tsc` does not check `te
 - Units: PR and stock use the stock unit; PO and GRN use the purchase unit. Stock units = purchase qty × `units_per_purchase`.
 - Pack rounding: allowed PO qty = ceil(approved / units_per_purchase) when units_per_purchase > 1.
 - Roles: admin, manager, requestor. Requestors never see prices (use `get_my_po_lines`).
+- Who may do what lives in one table, `domain/common/permissions.ts`. Services call `requirePermission(db, user, '<action>')`; never compare role strings in a service. Role and status values are typed (`Role`, `PoStatus`, `PrLineStatus`) and match the DB CHECK constraints.
 - Views (`v_*`) are read-only. Statuses change automatically; never set them by hand.
 - The database enforces the same rules again (RLS, triggers, RPCs `create_pr`, `create_po`, `create_grn`).
 

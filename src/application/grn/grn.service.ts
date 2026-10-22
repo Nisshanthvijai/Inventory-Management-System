@@ -3,13 +3,14 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
-import { assertCanReceiveGoods } from '../../domain/grn/grn-rules';
+import { requirePermission } from '../common/roles';
 import { CreateGrnDto } from './grn.dto';
 
 @Injectable()
 export class GrnService {
   async create(db: SupabaseClient, user: AuthUser, dto: CreateGrnDto) {
-    await this.requireReceiver(db, user);
+    // The database also requires a requestor to have a line on the PO.
+    await requirePermission(db, user, 'grn.create');
 
     // Quantity limits, "already complete" and "PO must be open" are enforced by the database
     // (triggers and RLS) with clear messages; requestors cannot read PO tables to pre-check them.
@@ -64,16 +65,5 @@ export class GrnService {
         return { ...grn, received_by_name: profile?.full_name ?? null };
       },
     );
-  }
-
-  /** The database allows an admin, or a requestor with a line on the PO. Managers are refused. */
-  private async requireReceiver(db: SupabaseClient, user: AuthUser) {
-    const { data, error } = await db
-      .from('profile')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-    if (error) throw new UnexpectedError(error.message);
-    assertCanReceiveGoods(data?.role);
   }
 }

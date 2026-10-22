@@ -1,4 +1,5 @@
 import { NotAllowed } from '../common/errors';
+import { Action } from '../common/permissions';
 
 /** The profile fields an update may change. Same shape as UpdateUserDto. */
 export interface ProfileChanges {
@@ -8,22 +9,22 @@ export interface ProfileChanges {
 }
 
 /**
- * Who may make this profile update. Returns the admin-only action it needs (it completes
- * "Only an admin can ..."), or null if callers may do it themselves (renaming their own profile).
- * Throws NotAllowed if callers try to change their own role or active status: not even an admin may.
+ * Which permission this profile update needs, or null if callers may do it themselves
+ * (renaming their own profile). Throws NotAllowed if callers try to change their own role
+ * or active status: not even an admin may.
  */
-export function adminActionForUserUpdate(
+export function permissionForUserUpdate(
   changes: ProfileChanges,
   targetId: string,
   callerId: string,
-): string | null {
+): Action | null {
   const changesAccess = changes.role !== undefined || changes.is_active !== undefined;
   if (changesAccess) {
     if (targetId === callerId) {
       throw new NotAllowed('You cannot change your own role or active status');
     }
-    return 'change a role or deactivate a user';
+    return 'user.change-access';
   }
-  if (targetId !== callerId) return "change another user's name";
+  if (targetId !== callerId) return 'user.rename-other';
   return null;
 }
