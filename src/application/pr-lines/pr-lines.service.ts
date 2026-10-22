@@ -2,14 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiError } from '../../domain/common/api-error';
-import { assertManagerOrAdmin } from '../../domain/common/role-rules';
 import { assertApprovedWithinRequested, decisionFields } from '../../domain/pr-lines/pr-line-rules';
+import { requireManager } from '../common/roles';
 import { DecideLineDto } from './pr-lines.dto';
 
 @Injectable()
 export class PrLinesService {
   async decide(db: SupabaseClient, user: AuthUser, id: string, dto: DecideLineDto) {
-    await this.requireManager(db, user);
+    await requireManager(db, user, 'decide on a PR line');
 
     const { data: line, error: lineError } = await db
       .from('pr_line')
@@ -46,15 +46,5 @@ export class PrLinesService {
       .maybeSingle();
     if (readError) throw new ApiError(500, readError.message);
     return result;
-  }
-
-  private async requireManager(db: SupabaseClient, user: AuthUser) {
-    const { data, error } = await db
-      .from('profile')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-    if (error) throw new ApiError(500, error.message);
-    assertManagerOrAdmin(data?.role, 'decide on a PR line');
   }
 }
