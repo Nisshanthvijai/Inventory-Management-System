@@ -167,7 +167,7 @@ describe('POST /api/po/:id/cancel', () => {
         'PO status is updated automatically (only an open PO can be cancelled)',
       ],
       ['42501', 'row-level security', 403, 'You cannot cancel this PO'],
-      ['XX000', 'internal', 500, 'internal'],
+      ['XX000', 'internal', 500, 'Something went wrong'],
     ])('%s "%s" -> %i', async (code, dbMessage, status, message) => {
       updateMaybe.mockResolvedValue({ data: null, error: { code, message: dbMessage } });
       const res = await cancel();
@@ -181,14 +181,14 @@ describe('POST /api/po/:id/cancel', () => {
       profileMaybe.mockResolvedValue({ data: null, error: { message: 'profile boom' } });
       const res = await cancel();
       expect(res.status).toBe(500);
-      expect(res.body.message).toBe('profile boom');
+      expect(res.body.message).toBe('Something went wrong');
     });
 
     it('PO', async () => {
       poMaybe.mockResolvedValue({ data: null, error: { message: 'po boom' } });
       const res = await cancel();
       expect(res.status).toBe(500);
-      expect(res.body.message).toBe('po boom');
+      expect(res.body.message).toBe('Something went wrong');
       expect(update).not.toHaveBeenCalled();
     });
 
@@ -196,7 +196,7 @@ describe('POST /api/po/:id/cancel', () => {
       viewMaybe.mockResolvedValue({ data: null, error: { message: 'view boom' } });
       const res = await cancel();
       expect(res.status).toBe(500);
-      expect(res.body.message).toBe('view boom');
+      expect(res.body.message).toBe('Something went wrong');
     });
   });
 });

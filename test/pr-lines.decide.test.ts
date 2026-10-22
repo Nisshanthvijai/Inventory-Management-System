@@ -135,7 +135,7 @@ describe('PATCH /api/pr-lines/:id', () => {
       profileMaybe.mockResolvedValue({ data: null, error: { message: 'profile boom' } });
       const res = await accept(2);
       expect(res.status).toBe(500);
-      expect(res.body.message).toBe('profile boom');
+      expect(res.body.message).toBe('Something went wrong');
     });
   });
 
@@ -152,7 +152,7 @@ describe('PATCH /api/pr-lines/:id', () => {
       lineMaybe.mockResolvedValue({ data: null, error: { message: 'line boom' } });
       const res = await accept(2);
       expect(res.status).toBe(500);
-      expect(res.body.message).toBe('line boom');
+      expect(res.body.message).toBe('Something went wrong');
     });
   });
 
@@ -224,7 +224,7 @@ describe('PATCH /api/pr-lines/:id', () => {
       viewMaybe.mockResolvedValue({ data: null, error: { message: 'view boom' } });
       const res = await accept(3);
       expect(res.status).toBe(500);
-      expect(res.body.message).toBe('view boom');
+      expect(res.body.message).toBe('Something went wrong');
     });
   });
 

@@ -142,21 +142,21 @@ describe('GET /api/po/:id', () => {
   describe('500 when a read fails', () => {
     it('profile', async () => {
       profileMaybe.mockResolvedValue({ data: null, error: { message: 'profile boom' } });
-      expect((await get(ID)).body.message).toBe('profile boom');
+      expect((await get(ID)).body.message).toBe('Something went wrong');
     });
 
     it('header', async () => {
       headerMaybe.mockResolvedValue({ data: null, error: { message: 'header boom' } });
       const res = await get(ID);
       expect(res.status).toBe(500);
-      expect(res.body.message).toBe('header boom');
+      expect(res.body.message).toBe('Something went wrong');
     });
 
     it('lines', async () => {
       secondOrder.mockResolvedValue({ data: null, error: { message: 'lines boom' } });
       const res = await get(ID);
       expect(res.status).toBe(500);
-      expect(res.body.message).toBe('lines boom');
+      expect(res.body.message).toBe('Something went wrong');
     });
   });
 });

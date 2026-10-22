@@ -98,7 +98,7 @@ describe('master data', () => {
         fake.listResult.mockReturnValue({ data: null, error: { message: 'list boom' } });
         const res = await http().get(url).set(auth);
         expect(res.status).toBe(500);
-        expect(res.body.message).toBe('list boom');
+        expect(res.body.message).toBe('Something went wrong');
       });
     });
 
@@ -172,7 +172,7 @@ describe('master data', () => {
       ['23514', 'violates check constraint "brand_name_check"', 400, 'violates check constraint "brand_name_check"'],
       ['P0001', 'some trigger rule', 409, 'some trigger rule'],
       ['42501', 'rls', 403, 'Only an admin can create or change brands'],
-      ['XX000', 'internal', 500, 'internal'],
+      ['XX000', 'internal', 500, 'Something went wrong'],
     ])('%s -> %i', async (code, message, status, expected) => {
       fake.insertSingle.mockResolvedValue({ data: null, error: { code, message } });
       const res = await http().post('/api/brands').set(auth).send({ name: 'X' });

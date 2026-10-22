@@ -100,7 +100,7 @@ describe('GET /api/po-lines/mine', () => {
     expect(res.body).toEqual({
       statusCode: 500,
       error: 'INTERNAL_SERVER_ERROR',
-      message: 'rpc boom',
+      message: 'Something went wrong',
     });
   });
 });

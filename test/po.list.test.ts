@@ -107,7 +107,7 @@ describe('GET /api/po', () => {
     profileMaybe.mockResolvedValue({ data: null, error: { message: 'profile boom' } });
     const res = await get();
     expect(res.status).toBe(500);
-    expect(res.body.message).toBe('profile boom');
+    expect(res.body.message).toBe('Something went wrong');
   });
 
   it('500 with the standard shape when the view read fails', async () => {
@@ -117,7 +117,7 @@ describe('GET /api/po', () => {
     expect(res.body).toEqual({
       statusCode: 500,
       error: 'INTERNAL_SERVER_ERROR',
-      message: 'view boom',
+      message: 'Something went wrong',
     });
   });
 });

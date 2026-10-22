@@ -139,7 +139,7 @@ describe('GET /api/pr/:id', () => {
     maybeSingle.mockResolvedValue({ data: null, error: { message: 'header boom' } });
     const res = await get(ID);
     expect(res.status).toBe(500);
-    expect(res.body.message).toBe('header boom');
+    expect(res.body.message).toBe('Something went wrong');
   });
 
   it('500 when the lines query fails', async () => {
@@ -150,6 +150,6 @@ describe('GET /api/pr/:id', () => {
     secondOrder.mockResolvedValue({ data: null, error: { message: 'lines boom' } });
     const res = await get(ID);
     expect(res.status).toBe(500);
-    expect(res.body.message).toBe('lines boom');
+    expect(res.body.message).toBe('Something went wrong');
   });
 });

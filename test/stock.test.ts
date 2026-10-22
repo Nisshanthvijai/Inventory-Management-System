@@ -86,7 +86,7 @@ describe('GET /api/stock', () => {
     expect(res.body).toEqual({
       statusCode: 500,
       error: 'INTERNAL_SERVER_ERROR',
-      message: 'boom',
+      message: 'Something went wrong',
     });
   });
 });

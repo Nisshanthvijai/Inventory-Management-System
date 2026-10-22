@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -100,14 +100,20 @@ describe('GET /api/pr', () => {
     expect(res.body[0]).not.toHaveProperty('requester');
   });
 
-  it('500 with the standard error shape when Supabase fails', async () => {
-    order.mockResolvedValue({ data: null, error: { message: 'boom' } });
+  it('500 with the standard error shape when Supabase fails; the database text is logged, not sent', async () => {
+    const log = vi.spyOn(Logger.prototype, 'error');
+    order.mockResolvedValue({ data: null, error: { message: 'relation "v_pr_list" does not exist' } });
     const res = await get();
     expect(res.status).toBe(500);
     expect(res.body).toEqual({
       statusCode: 500,
       error: 'INTERNAL_SERVER_ERROR',
-      message: 'boom',
+      message: 'Something went wrong',
     });
+    expect(JSON.stringify(res.body)).not.toContain('v_pr_list');
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'relation "v_pr_list" does not exist' }),
+    );
+    log.mockRestore();
   });
 });

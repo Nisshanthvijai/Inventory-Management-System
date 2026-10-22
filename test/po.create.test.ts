@@ -352,7 +352,7 @@ describe('POST /api/po', () => {
       ['23505', 'duplicate key', 409, 'This PR line is already on this PO'],
       ['23503', 'fk violation', 400, 'A referenced record does not exist'],
       ['42501', 'row-level security', 403, 'You cannot create a PO'],
-      ['XX000', 'internal', 500, 'internal'],
+      ['XX000', 'internal', 500, 'Something went wrong'],
     ])('%s "%s" -> %i', async (code, dbMessage, status, message) => {
       rpc.mockResolvedValue({ data: null, error: { code, message: dbMessage } });
       const res = await post(po([line(1)]));
@@ -366,17 +366,17 @@ describe('POST /api/po', () => {
       prLinesIn.mockResolvedValue({ data: null, error: { message: 'pr boom' } });
       const res = await post(po([line(1)]));
       expect(res.status).toBe(500);
-      expect(res.body.message).toBe('pr boom');
+      expect(res.body.message).toBe('Something went wrong');
     });
 
     it('variants', async () => {
       variantsIn.mockResolvedValue({ data: null, error: { message: 'variant boom' } });
-      expect((await post(po([line(1)]))).body.message).toBe('variant boom');
+      expect((await post(po([line(1)]))).body.message).toBe('Something went wrong');
     });
 
     it('already-ordered rows', async () => {
       orderedNeq.mockResolvedValue({ data: null, error: { message: 'ordered boom' } });
-      expect((await post(po([line(1)]))).body.message).toBe('ordered boom');
+      expect((await post(po([line(1)]))).body.message).toBe('Something went wrong');
     });
   });
 });

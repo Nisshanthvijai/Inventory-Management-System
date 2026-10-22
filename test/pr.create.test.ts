@@ -121,7 +121,7 @@ describe('POST /api/pr', () => {
       ['P0001', 'A PR needs at least one line', 400, 'A PR needs at least one line'],
       ['42501', 'row-level security', 403, 'You cannot create a PR'],
       ['23503', 'fk violation', 400, 'Unknown item variant'],
-      ['XX000', 'internal', 500, 'internal'],
+      ['XX000', 'internal', 500, 'Something went wrong'],
     ])('%s -> %i', async (code, dbMessage, status, message) => {
       rpc.mockResolvedValue({ data: null, error: { code, message: dbMessage } });
       const res = await post(body);

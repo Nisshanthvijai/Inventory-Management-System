@@ -79,6 +79,7 @@ guard (verifies the token through `AuthProvider`, sets `req.user` and `req.sessi
 
 ### Errors
 Domain rules, services and repositories throw app errors, never HTTP ones: `RuleViolation`, `NotAllowed`, `NotFound`, `Conflict` (domain/common/errors.ts), `Unauthenticated`, `UnexpectedError` (application/common/errors.ts). `AllExceptionsFilter` is the only place that maps an error kind to an HTTP status. `ApiError` (an `HttpException`) lives in presentation and is used only by `ZodPipe`.
+Every 500 (an `UnexpectedError` or any unknown throw) is logged with its real message and sent as `"Something went wrong"`: database text never reaches the client. Put the database message in `UnexpectedError` anyway; it is what the log shows. Tests mute the console logger in `test/setup.ts`; to check the log, spy on `Logger.prototype.error`.
 
 ### Domain rules
 A check that uses only plain values (status, quantities, units, roles) goes in `domain/<feature>/` as a pure function with a unit test in `test/`; a rule used by more than one feature goes in `domain/common/`.

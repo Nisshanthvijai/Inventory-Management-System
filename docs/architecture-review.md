@@ -84,7 +84,7 @@ Review date: 2026-10-22. Scope: every file in `src/`, with import directions che
 
 ### Phase 5: smaller fixes
 
-- [ ] 14. `InfrastructureError`: log the real message, return a generic one. *Behaviour change.*
+- [x] 14. `InfrastructureError`: log the real message, return a generic one. *Behaviour change.* *Done without a new class: `UnexpectedError` is already the "infrastructure failed" error, so `AllExceptionsFilter` logs it and sends "Something went wrong", like any unknown throw.*
 - [ ] 15. CORS origins from env. *Behaviour change.*
 - [ ] 16. C8: leave it (accepted trade-off).
 

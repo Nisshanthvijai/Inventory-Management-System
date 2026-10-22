@@ -23,6 +23,9 @@ const STATUS_BY_KIND: Record<ErrorKind, number> = {
   unexpected: HttpStatus.INTERNAL_SERVER_ERROR,
 };
 
+/** What a client sees for any 500: the real cause (often database text) only goes to the log. */
+const GENERIC_MESSAGE = 'Something went wrong';
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
@@ -30,7 +33,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse<JsonResponse>();
 
-    if (exception instanceof AppError) {
+    if (exception instanceof AppError && exception.kind !== 'unexpected') {
       const status = STATUS_BY_KIND[exception.kind];
       res.status(status).json({
         statusCode: status,
@@ -52,11 +55,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
 
+    // An UnexpectedError, or anything that is not an app or HTTP error.
     this.logger.error(exception);
     res.status(500).json({
       statusCode: 500,
       error: 'INTERNAL_SERVER_ERROR',
-      message: 'Something went wrong',
+      message: GENERIC_MESSAGE,
     });
   }
 
