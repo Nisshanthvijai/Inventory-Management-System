@@ -1,0 +1,103 @@
+# Architecture review: Clean Architecture and SOLID
+
+Review date: 2026-10-22. Scope: every file in `src/`, with import directions checked by grep.
+
+## Scores at review time
+
+| Area | Score |
+|---|---|
+| Clean Architecture (layers and boundaries) | 6/10 |
+| S: Single Responsibility | 7/10 |
+| O: Open/Closed | 7/10 |
+| L: Liskov Substitution | 6/10 |
+| I: Interface Segregation | 6/10 |
+| D: Dependency Inversion | 5/10 |
+| **Overall** | **6/10** |
+
+## Strengths
+
+- Import direction is correct everywhere: no layer imports a layer further out.
+- Controllers are one line per handler; guard, pipes, filter and param decorators each do one job.
+- `AppModule` is the composition root; `SupabaseModule` (`@Global`) binds the ports.
+- `AuthProvider` is a real port: `AuthService` and the guard do not see Supabase.
+- Domain rules are pure functions with unit tests.
+- Master data is open for extension: a new table is a config entry.
+- 388 tests, plus a Postman collection run against the real database.
+
+## Findings
+
+### Clean Architecture
+
+| ID | Finding | Severity |
+|---|---|---|
+| C1 | `SupabaseClient` is used in 10 application files, 8 controllers and `AuthedRequest`. `DbFactory` returns the vendor type, so it is not a real port. | High |
+| C2 | The domain speaks HTTP: `ApiError extends HttpException`, and domain rules throw 400/403/409. | High |
+| C3 | Persistence lives in services: table and view names, column lists, `rpc()`, Postgres error codes. | High |
+| C4 | Status codes depend on database message text (`message.includes('goods received')` and 3 others). | Medium |
+| C5 | `MasterResource` mixes URL path, table/columns, zod schemas and read role in one object. | Medium |
+| C6 | Thin domain: no entities; roles and statuses are bare strings (26 literals). | Medium |
+| C7 | No generated DB types: rows are `any`, services return casts (`as unknown as ...`). | Medium |
+| C8 | `@Injectable()` in the application layer. Accepted trade-off in Nest. | Low |
+
+### SOLID
+
+- **S:** `PoService.create` has six jobs; `MasterResource` has four reasons to change; error translation is in every use case.
+- **O:** adding a role or status means editing string comparisons in several files; DB-error `if` chains grow per trigger.
+- **L:** `AuthProvider.verifyToken` promises `null` for an invalid token, but the Supabase implementation also returns `null` on a network failure, so an outage looks like a bad login (seen as a 401 in Postman).
+- **I:** services receive the whole `SupabaseClient`; `MasterResource` is a fat config; `AuthedRequest.token` is never read.
+- **D:** all services depend on the concrete `SupabaseClient`; `requireAdmin` / `requireManager` are concrete functions that query the database.
+
+### Smaller issues
+
+- 31 `ApiError(500, error.message)` calls send raw Postgres text to clients.
+- `users.me` turns a database error into a 403.
+- The role is fetched from `profile` again on every role check.
+- Authorization is spread over the guard, the services and RLS.
+- `enableCors()` allows every origin.
+
+## Fix plan
+
+### Phase 1: clean up the domain layer (no behaviour change)
+
+- [ ] 1. Domain errors (`RuleViolation`, `NotAllowed`, `NotFound`, `Conflict`) instead of `ApiError`; the filter maps them to HTTP; `ApiError` moves to presentation. (C2)
+- [ ] 2. `Role`, `PoStatus`, `PrLineStatus` types matching the database CHECK constraints. (C6, O)
+- [ ] 3. One permission table (`domain/common/permissions.ts`) with `assertCan(role, action)`; messages stay word for word. (O, authorization spread)
+
+### Phase 2: auth and roles
+
+- [ ] 4. The guard reads the role once (new `ProfileReader` port); `AuthUser` gets `role`; `roles.ts` goes away.
+- [ ] 5. `AuthProvider`: a network failure throws 503 instead of returning `null`. (L) *Declined on 2026-10-22; kept here for the record.*
+- [ ] 6. `users.me`: a database error returns 500, not 403.
+
+### Phase 3: types between layers
+
+- [ ] 7. Generated Supabase types; `SupabaseClient<Database>` everywhere. (C7)
+- [ ] 8. Response types per feature; remove the casts. (C7)
+
+### Phase 4: repositories (large; changes the "services take `(db, ...)`" rule)
+
+- [ ] 9. An opaque `Session` port instead of `SupabaseClient`; `@CurrentSession()`; no Supabase in presentation. (C1)
+- [ ] 10. One repository port per feature, implemented in `infrastructure/supabase/repositories/`; queries and DB-error translation move there. (C3, S, I, D)
+- [ ] 11. Message matching moves into the repositories; optionally, triggers raise their own SQLSTATE codes (needs migrations). (C4)
+- [ ] 12. Split `MasterResource` into presentation routes, domain policy and infrastructure table mapping. (C5, I)
+- [ ] 13. Update CLAUDE.md for sessions and repositories.
+
+### Phase 5: smaller fixes
+
+- [ ] 14. `InfrastructureError`: log the real message, return a generic one. *Behaviour change.*
+- [ ] 15. CORS origins from env. *Behaviour change.*
+- [ ] 16. C8: leave it (accepted trade-off).
+
+### Expected scores
+
+| After phase | Overall |
+|---|---|
+| 1 | ~6.5 |
+| 2 | ~7 |
+| 3 | ~7 |
+| 4 | ~8.5 |
+| 5 | ~8.5 to 9 |
+
+## Progress log
+
+- 2026-10-22: review written; phases 1 to 3 started on branch `arch-phase-1-3`.
