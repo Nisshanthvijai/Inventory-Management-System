@@ -65,7 +65,7 @@ Review date: 2026-10-22. Scope: every file in `src/`, with import directions che
 
 ### Phase 2: auth and roles
 
-- [ ] 4. The guard reads the role once (new `ProfileReader` port); `AuthUser` gets `role`; `roles.ts` goes away.
+- [x] 4. Role checks go through a `RoleReader` port and an injected `PermissionService`; `roles.ts` goes away. *Changed from "the guard reads the role on every request": that added a query to every request (also ones a pipe rejects) and broke ~20 tested "no database call before validation" properties. The role is still read at most once per request, only when a check runs.* (D)
 - [ ] 5. `AuthProvider`: a network failure throws 503 instead of returning `null`. (L) *Declined on 2026-10-22; kept here for the record.*
 - [ ] 6. `users.me`: a database error returns 500, not 403.
 

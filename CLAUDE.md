@@ -41,19 +41,22 @@ src/
                           pr-lines/pr-line-rules.ts, pr-lines/pr-line-status.ts, users/user-rules.ts
   application/<feature>/  *.service.ts, *.dto.ts (zod)    (business rules; master.resources.ts)
   application/auth/       auth-provider.ts                (AuthProvider = port: signIn(), verifyToken(); null on failure)
-  application/common/     roles.ts, db-factory.ts, errors.ts   (DbFactory = port: anon(), forUser(token))
+  application/common/     db-factory.ts, role-reader.ts, permission.service.ts, errors.ts
+                          (DbFactory = port: anon(), forUser(token); RoleReader = port: roleOf(db, userId))
   infrastructure/supabase/ supabase.service.ts (implements DbFactory), supabase-auth.provider.ts
-                          (implements AuthProvider), supabase.module.ts (@Global)
+                          (implements AuthProvider), supabase-role.reader.ts (implements RoleReader),
+                          supabase.module.ts (@Global)
   presentation/<feature>/ *.controller.ts, *.module.ts    (HTTP only)
   presentation/common/    auth.guard.ts, authed-request.ts, public.decorator.ts, current.decorators.ts,
-                          zod.pipe.ts, uuid.pipe.ts, all-exceptions.filter.ts, api-zod-body.ts, api-error.ts
+                          zod.pipe.ts, uuid.pipe.ts, all-exceptions.filter.ts, api-zod-body.ts, api-error.ts,
+                          common.module.ts (@Global: provides PermissionService)
 test/                     one vitest + supertest file per area, fake-db.ts
 ```
 Dependency direction: presentation → application → domain; infrastructure → application (implements its ports) → domain. Never the reverse.
 presentation never imports infrastructure: inject `DbFactory` / `AuthProvider`, not `SupabaseService`.
-`SupabaseModule` binds `{ provide: DbFactory, useExisting: SupabaseService }` and `{ provide: AuthProvider, useClass: SupabaseAuthProvider }`.
+`SupabaseModule` binds `{ provide: DbFactory, useExisting: SupabaseService }`, `{ provide: AuthProvider, useClass: SupabaseAuthProvider }` and `{ provide: RoleReader, useClass: SupabaseRoleReader }`.
 Login and token checks go through `AuthProvider` (no Supabase API in `AuthService` or the guard). Queries and RPCs still use the `SupabaseClient` from `DbFactory.forUser`, so only auth is swappable, not the database.
-`app.module.ts` is the composition root: the only file that imports every layer (it registers `SupabaseModule` once; it is `@Global`).
+`app.module.ts` is the composition root: the only file that imports every layer (it registers the `@Global` `SupabaseModule` and `CommonModule` once).
 Tests override `SupabaseService`; `DbFactory` follows it because of `useExisting`.
 `domain/` imports nothing from the other layers or from any framework.
 Errors: domain rules and services throw app errors, never HTTP ones: `RuleViolation`, `NotAllowed`, `NotFound`, `Conflict` (domain/common/errors.ts), `Unauthenticated`, `UnexpectedError` (application/common/errors.ts). `AllExceptionsFilter` is the only place that maps an error kind to an HTTP status. `ApiError` (an `HttpException`) lives in presentation and is used only by `ZodPipe`. `AuthedRequest` (HTTP + SupabaseClient) lives in presentation; `AuthUser` lives in domain.
@@ -67,7 +70,7 @@ New files go in the layer that matches the table above. `tsc` does not check `te
 - Units: PR and stock use the stock unit; PO and GRN use the purchase unit. Stock units = purchase qty × `units_per_purchase`.
 - Pack rounding: allowed PO qty = ceil(approved / units_per_purchase) when units_per_purchase > 1.
 - Roles: admin, manager, requestor. Requestors never see prices (use `get_my_po_lines`).
-- Who may do what lives in one table, `domain/common/permissions.ts`. Services call `requirePermission(db, user, '<action>')`; never compare role strings in a service. Role and status values are typed (`Role`, `PoStatus`, `PrLineStatus`) and match the DB CHECK constraints.
+- Who may do what lives in one table, `domain/common/permissions.ts`. Services inject `PermissionService` and call `await this.permissions.require(db, user, '<action>')`; never compare role strings in a service. The role is read (through the `RoleReader` port) only when a check runs, so a request rejected by a pipe never touches the database. Role and status values are typed (`Role`, `PoStatus`, `PrLineStatus`) and match the DB CHECK constraints.
 - Views (`v_*`) are read-only. Statuses change automatically; never set them by hand.
 - The database enforces the same rules again (RLS, triggers, RPCs `create_pr`, `create_po`, `create_grn`).
 

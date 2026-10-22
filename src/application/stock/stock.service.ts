@@ -3,11 +3,13 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
-import { requirePermission } from '../common/roles';
+import { PermissionService } from '../common/permission.service';
 import { SetStockDto } from './stock.dto';
 
 @Injectable()
 export class StockService {
+  constructor(private readonly permissions: PermissionService) {}
+
   async list(db: SupabaseClient) {
     const { data, error } = await db
       .from('v_stock')
@@ -21,7 +23,7 @@ export class StockService {
 
   /** Admin only. One UPDATE sets the new total, so concurrent admins cannot lose each other's change. */
   async setQuantity(db: SupabaseClient, user: AuthUser, id: string, dto: SetStockDto) {
-    await requirePermission(db, user, 'stock.set');
+    await this.permissions.require(db, user, 'stock.set');
 
     const { data, error } = await db
       .from('stock')

@@ -6,14 +6,16 @@ import { UnexpectedError } from '../common/errors';
 import { assertPoLineAllowed } from '../../domain/po/po-line-rules';
 import { assertPoCancellable } from '../../domain/po/po-rules';
 import { PoStatus } from '../../domain/po/po-status';
-import { requirePermission } from '../common/roles';
+import { PermissionService } from '../common/permission.service';
 import { CreatePoDto } from './po.dto';
 
 @Injectable()
 export class PoService {
+  constructor(private readonly permissions: PermissionService) {}
+
   async list(db: SupabaseClient, user: AuthUser) {
     // RLS alone would give a requestor an empty list; a clear 403 says why.
-    await requirePermission(db, user, 'po.view');
+    await this.permissions.require(db, user, 'po.view');
 
     const { data, error } = await db
       .from('v_purchase_order')
@@ -24,7 +26,7 @@ export class PoService {
   }
 
   async get(db: SupabaseClient, user: AuthUser, id: string) {
-    await requirePermission(db, user, 'po.view');
+    await this.permissions.require(db, user, 'po.view');
 
     const { data: header, error } = await db
       .from('v_purchase_order')
@@ -46,7 +48,7 @@ export class PoService {
   }
 
   async cancel(db: SupabaseClient, user: AuthUser, id: string) {
-    await requirePermission(db, user, 'po.cancel');
+    await this.permissions.require(db, user, 'po.cancel');
 
     const { data: po, error } = await db
       .from('purchase_order')
@@ -86,7 +88,7 @@ export class PoService {
   }
 
   async create(db: SupabaseClient, user: AuthUser, dto: CreatePoDto) {
-    await requirePermission(db, user, 'po.create');
+    await this.permissions.require(db, user, 'po.create');
 
     const prLineIds = dto.lines.map((l) => l.pr_line_id);
 

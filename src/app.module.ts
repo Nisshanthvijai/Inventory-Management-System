@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SupabaseModule } from './infrastructure/supabase/supabase.module';
 import { AuthModule } from './presentation/auth/auth.module';
+import { CommonModule } from './presentation/common/common.module';
 import { GrnModule } from './presentation/grn/grn.module';
 import { HealthModule } from './presentation/health/health.module';
 import { MasterModule } from './presentation/master/master.module';
@@ -16,6 +17,7 @@ import { UsersModule } from './presentation/users/users.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env.local' }),
     SupabaseModule,
+    CommonModule,
     HealthModule,
     AuthModule,
     StockModule,

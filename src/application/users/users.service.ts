@@ -4,7 +4,7 @@ import { AuthUser } from '../../domain/common/auth-user';
 import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
 import { permissionForUserUpdate } from '../../domain/users/user-rules';
-import { requirePermission } from '../common/roles';
+import { PermissionService } from '../common/permission.service';
 import { UpdateUserDto } from './users.dto';
 
 const COLUMNS = 'id, full_name, role, is_active, created_at';
@@ -15,6 +15,8 @@ const COLUMNS = 'id, full_name, role, is_active, created_at';
  */
 @Injectable()
 export class UsersService {
+  constructor(private readonly permissions: PermissionService) {}
+
   /** The signed-in user's own profile, plus the email from their token. */
   async me(db: SupabaseClient, user: AuthUser) {
     const { data, error } = await db
@@ -30,7 +32,7 @@ export class UsersService {
   }
 
   async list(db: SupabaseClient, user: AuthUser) {
-    await requirePermission(db, user, 'user.list');
+    await this.permissions.require(db, user, 'user.list');
     const { data, error } = await db.from('profile').select(COLUMNS).order('full_name');
     if (error) throw new UnexpectedError(error.message);
     return data ?? [];
@@ -38,7 +40,7 @@ export class UsersService {
 
   async update(db: SupabaseClient, user: AuthUser, id: string, dto: UpdateUserDto) {
     const permission = permissionForUserUpdate(dto, id, user.id);
-    if (permission) await requirePermission(db, user, permission);
+    if (permission) await this.permissions.require(db, user, permission);
 
     const { data, error } = await db
       .from('profile')

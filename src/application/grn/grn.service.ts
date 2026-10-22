@@ -3,14 +3,16 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
-import { requirePermission } from '../common/roles';
+import { PermissionService } from '../common/permission.service';
 import { CreateGrnDto } from './grn.dto';
 
 @Injectable()
 export class GrnService {
+  constructor(private readonly permissions: PermissionService) {}
+
   async create(db: SupabaseClient, user: AuthUser, dto: CreateGrnDto) {
     // The database also requires a requestor to have a line on the PO.
-    await requirePermission(db, user, 'grn.create');
+    await this.permissions.require(db, user, 'grn.create');
 
     // Quantity limits, "already complete" and "PO must be open" are enforced by the database
     // (triggers and RLS) with clear messages; requestors cannot read PO tables to pre-check them.

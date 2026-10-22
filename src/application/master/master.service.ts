@@ -3,13 +3,15 @@ import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
-import { requirePermission } from '../common/roles';
+import { PermissionService } from '../common/permission.service';
 import { MasterResource } from './master.resources';
 
 @Injectable()
 export class MasterService {
+  constructor(private readonly permissions: PermissionService) {}
+
   async list(db: SupabaseClient, user: AuthUser, r: MasterResource) {
-    if (r.readRole === 'manager') await requirePermission(db, user, 'master.view-restricted', r.label);
+    if (r.readRole === 'manager') await this.permissions.require(db, user, 'master.view-restricted', r.label);
 
     let query = db.from(r.listFrom ?? r.table).select(r.listSelect ?? r.select);
     for (const column of r.order) query = query.order(column);
@@ -19,14 +21,14 @@ export class MasterService {
   }
 
   async create(db: SupabaseClient, user: AuthUser, r: MasterResource, dto: object) {
-    await requirePermission(db, user, 'master.write', r.label);
+    await this.permissions.require(db, user, 'master.write', r.label);
     const { data, error } = await db.from(r.table).insert(dto).select(r.select).single();
     if (error) throw this.writeError(error, r);
     return data;
   }
 
   async update(db: SupabaseClient, user: AuthUser, r: MasterResource, id: string, dto: object) {
-    await requirePermission(db, user, 'master.write', r.label);
+    await this.permissions.require(db, user, 'master.write', r.label);
     const { data, error } = await db
       .from(r.table)
       .update(dto)
