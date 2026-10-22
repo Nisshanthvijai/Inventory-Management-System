@@ -1,67 +1,40 @@
 import { Injectable } from '@nestjs/common';
 import { AuthUser } from '../../domain/common/auth-user';
-import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
-import { UnexpectedError } from '../common/errors';
+import { NotAllowed, NotFound } from '../../domain/common/errors';
 import { permissionForUserUpdate } from '../../domain/users/user-rules';
 import { PermissionService } from '../common/permission.service';
-import { UpdateUserDto } from './users.dto';
-import { MyProfile, UserRow } from './users.types';
 import { Session } from '../common/session';
-import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
+import { UpdateUserDto } from './users.dto';
+import { UsersRepository } from './users.repository';
+import { MyProfile, UserRow } from './users.types';
 
-const COLUMNS = 'id, full_name, role, is_active, created_at';
-
-/**
- * Users are rows in `profile`. Creating a login needs Supabase's admin API (the
- * service_role key), which this API never uses, so users are created in the dashboard.
- */
+/** Users are profiles; logins are created in the Supabase dashboard, not by this API. */
 @Injectable()
 export class UsersService {
-  constructor(private readonly permissions: PermissionService) {}
+  constructor(
+    private readonly permissions: PermissionService,
+    private readonly users: UsersRepository,
+  ) {}
 
   /** The signed-in user's own profile, plus the email from their token. */
   async me(session: Session, user: AuthUser): Promise<MyProfile> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
-    const { data, error } = await db
-      .from('profile')
-      .select('id, full_name, role, is_active')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    // A failed read is our problem (500); only a missing profile means "not allowed in" (403).
-    if (error) throw new UnexpectedError(error.message);
-    if (!data) throw new NotAllowed('No profile for this user');
-
-    return { ...data, email: user.email };
+    // A failed read is our problem (500, from the repository); only a missing profile is a 403.
+    const profile = await this.users.findProfile(session, user.id);
+    if (!profile) throw new NotAllowed('No profile for this user');
+    return { ...profile, email: user.email };
   }
 
   async list(session: Session, user: AuthUser): Promise<UserRow[]> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
     await this.permissions.require(session, user, 'user.list');
-    const { data, error } = await db.from('profile').select(COLUMNS).order('full_name');
-    if (error) throw new UnexpectedError(error.message);
-    return data ?? [];
+    return this.users.list(session);
   }
 
   async update(session: Session, user: AuthUser, id: string, dto: UpdateUserDto): Promise<UserRow> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
     const permission = permissionForUserUpdate(dto, id, user.id);
     if (permission) await this.permissions.require(session, user, permission);
 
-    const { data, error } = await db
-      .from('profile')
-      .update(dto)
-      .eq('id', id)
-      .select(COLUMNS)
-      .maybeSingle();
-
-    if (error) {
-      // The profile_guard trigger repeats the role rules above.
-      if (error.code === 'P0001' || error.code === '42501') throw new NotAllowed(error.message);
-      if (error.code === '23514') throw new RuleViolation(error.message);
-      throw new UnexpectedError(error.message);
-    }
-    if (!data) throw new NotFound('User not found');
-    return data;
+    const row = await this.users.update(session, id, dto);
+    if (!row) throw new NotFound('User not found');
+    return row;
   }
 }
