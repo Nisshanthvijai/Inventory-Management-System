@@ -104,5 +104,8 @@ New files go in the layer that matches the layout above. `tsc` does not check `t
 - Views (`v_*`) are read-only. Statuses change automatically; never set them by hand.
 - The database enforces the same rules again (RLS, triggers, RPCs `create_pr`, `create_po`, `create_grn`).
 
+## Configuration (`.env.local`, never in git)
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` (required); `PORT` (default 3000); `CORS_ORIGINS`: comma-separated browser origins allowed to call the API (e.g. `http://localhost:5173`). Unset means no cross-origin browser calls; Postman and the Swagger page still work. `setupApp` reads it.
+
 ## Commands
 `npm run start:dev` (http://localhost:3000/api, docs at /docs), `npm test`, `npx tsc --noEmit`, `npm run build`.
