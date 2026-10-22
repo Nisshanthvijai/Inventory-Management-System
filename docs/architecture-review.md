@@ -72,7 +72,7 @@ Review date: 2026-10-22. Scope: every file in `src/`, with import directions che
 ### Phase 3: types between layers
 
 - [x] 7. Generated Supabase types; `SupabaseClient<Database>` everywhere. (C7)
-- [ ] 8. Response types per feature; remove the casts. (C7)
+- [x] 8. Response types per feature; remove the casts. (C7)
 
 ### Phase 4: repositories (large; changes the "services take `(db, ...)`" rule)
 

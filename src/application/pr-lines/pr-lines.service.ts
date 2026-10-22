@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Row } from '../common/database.types';
 import { Db } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
@@ -11,7 +12,7 @@ import { DecideLineDto } from './pr-lines.dto';
 export class PrLinesService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async decide(db: Db, user: AuthUser, id: string, dto: DecideLineDto) {
+  async decide(db: Db, user: AuthUser, id: string, dto: DecideLineDto): Promise<Row<'v_pr_lines'> | null> {
     await this.permissions.require(db, user, 'pr-line.decide');
 
     const { data: line, error: lineError } = await db

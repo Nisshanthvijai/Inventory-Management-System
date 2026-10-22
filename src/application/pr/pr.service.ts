@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { Db } from '../common/db';
 import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
+import { parseRpcResult } from '../common/rpc-result';
 import { CreatePrDto } from './pr.dto';
+import { PrCreated, prCreatedSchema, PrDetail, PrSummary } from './pr.types';
 
 @Injectable()
 export class PrService {
-  async create(db: Db, dto: CreatePrDto) {
+  async create(db: Db, dto: CreatePrDto): Promise<PrCreated> {
     const { data, error } = await db.rpc('create_pr', {
       p_lines: dto.lines,
       p_priority: dto.priority,
@@ -20,10 +22,10 @@ export class PrService {
       throw new UnexpectedError(error.message);
     }
 
-    return data as { pr_id: string; pr_no: string; lines: number };
+    return parseRpcResult(prCreatedSchema, data, 'create_pr');
   }
 
-  async list(db: Db) {
+  async list(db: Db): Promise<PrSummary[]> {
     const { data, error } = await db
       .from('purchase_requisition')
       .select(
@@ -39,7 +41,7 @@ export class PrService {
     });
   }
 
-  async get(db: Db, id: string) {
+  async get(db: Db, id: string): Promise<PrDetail> {
     const { data: header, error } = await db
       .from('purchase_requisition')
       .select(
@@ -66,4 +68,3 @@ export class PrService {
     return { ...pr, requested_by_name: profile?.full_name ?? null, lines: lines ?? [] };
   }
 }
-  

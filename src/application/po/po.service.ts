@@ -8,13 +8,15 @@ import { assertPoCancellable } from '../../domain/po/po-rules';
 import { isPoStatus, PoStatus } from '../../domain/po/po-status';
 import { isPrLineStatus } from '../../domain/pr-lines/pr-line-status';
 import { PermissionService } from '../common/permission.service';
+import { parseRpcResult } from '../common/rpc-result';
 import { CreatePoDto } from './po.dto';
+import { PoCreated, poCreatedSchema, PoDetail, PoSummary } from './po.types';
 
 @Injectable()
 export class PoService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async list(db: Db, user: AuthUser) {
+  async list(db: Db, user: AuthUser): Promise<PoSummary[]> {
     // RLS alone would give a requestor an empty list; a clear 403 says why.
     await this.permissions.require(db, user, 'po.view');
 
@@ -26,7 +28,7 @@ export class PoService {
     return data;
   }
 
-  async get(db: Db, user: AuthUser, id: string) {
+  async get(db: Db, user: AuthUser, id: string): Promise<PoDetail> {
     await this.permissions.require(db, user, 'po.view');
 
     const { data: header, error } = await db
@@ -48,7 +50,7 @@ export class PoService {
     return { ...header, lines: lines ?? [] };
   }
 
-  async cancel(db: Db, user: AuthUser, id: string) {
+  async cancel(db: Db, user: AuthUser, id: string): Promise<PoSummary | null> {
     await this.permissions.require(db, user, 'po.cancel');
 
     const { data: po, error } = await db
@@ -89,7 +91,7 @@ export class PoService {
     return result;
   }
 
-  async create(db: Db, user: AuthUser, dto: CreatePoDto) {
+  async create(db: Db, user: AuthUser, dto: CreatePoDto): Promise<PoCreated> {
     await this.permissions.require(db, user, 'po.create');
 
     const prLineIds = dto.lines.map((l) => l.pr_line_id);
@@ -171,6 +173,6 @@ export class PoService {
       throw new UnexpectedError(error.message);
     }
 
-    return data as { po_id: string; po_no: string; lines: number };
+    return parseRpcResult(poCreatedSchema, data, 'create_po');
   }
 }

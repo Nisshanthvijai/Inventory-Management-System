@@ -16,7 +16,7 @@ import { MasterResource } from './master.resources';
 export class MasterService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async list(db: Db, user: AuthUser, r: MasterResource) {
+  async list(db: Db, user: AuthUser, r: MasterResource): Promise<unknown[]> {
     if (r.readRole === 'manager') await this.permissions.require(db, user, 'master.view-restricted', r.label);
 
     let query = untyped(db).from(r.listFrom ?? r.table).select(r.listSelect ?? r.select);
@@ -26,14 +26,14 @@ export class MasterService {
     return data ?? [];
   }
 
-  async create(db: Db, user: AuthUser, r: MasterResource, dto: object) {
+  async create(db: Db, user: AuthUser, r: MasterResource, dto: object): Promise<unknown> {
     await this.permissions.require(db, user, 'master.write', r.label);
     const { data, error } = await untyped(db).from(r.table).insert(dto).select(r.select).single();
     if (error) throw this.writeError(error, r);
     return data;
   }
 
-  async update(db: Db, user: AuthUser, r: MasterResource, id: string, dto: object) {
+  async update(db: Db, user: AuthUser, r: MasterResource, id: string, dto: object): Promise<unknown> {
     await this.permissions.require(db, user, 'master.write', r.label);
     const { data, error } = await untyped(db)
       .from(r.table)
