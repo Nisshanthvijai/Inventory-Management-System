@@ -103,4 +103,5 @@ Review date: 2026-10-22. Scope: every file in `src/`, with import directions che
 - 2026-10-22: review written; phases 1 to 3 started on branch `arch-phase-1-3`.
 - 2026-10-22: phases 1 to 3 done on `arch-phase-1-3` (steps 1, 2, 3, 4, 6, 7, 8; step 5 declined). 445 tests pass; live server checked without login. Merged after a Postman run with a login.
 - 2026-10-22: phase 4 done on `arch-phase-4` (steps 9 to 13). Supabase now appears only in infrastructure; 445 tests pass. Not merged; Postman run with a login still to do.
-- 2026-10-22: phase 5 done on `arch-phase-5` (branched from `arch-phase-4`; steps 14, 15, 16). 500s send "Something went wrong" and log the real cause; CORS allows only `CORS_ORIGINS`. 449 tests pass; built server checked with and without `CORS_ORIGINS`. Not merged; Postman run with a login still to do.
+- 2026-10-22: phase 5 done on `arch-phase-5` (branched from `arch-phase-4`; steps 14, 15, 16). 500s send "Something went wrong" and log the real cause; CORS allows only `CORS_ORIGINS`. 449 tests pass; built server checked with and without `CORS_ORIGINS`.
+- 2026-10-22: Postman run with a login passed on `arch-phase-5` (covers phases 4 and 5). Merged into `main` and pushed.
