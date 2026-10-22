@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiError } from '../../domain/common/api-error';
+import { assertCanReceiveGoods } from '../../domain/grn/grn-rules';
 import { CreateGrnDto } from './grn.dto';
 
 @Injectable()
@@ -73,11 +74,6 @@ export class GrnService {
       .eq('id', user.id)
       .maybeSingle();
     if (error) throw new ApiError(500, error.message);
-    if (data?.role === 'manager') {
-      throw new ApiError(403, 'A manager cannot receive goods; a requestor or admin can');
-    }
-    if (data?.role !== 'requestor' && data?.role !== 'admin') {
-      throw new ApiError(403, 'Only a requestor or admin can receive goods');
-    }
+    assertCanReceiveGoods(data?.role);
   }
 }
