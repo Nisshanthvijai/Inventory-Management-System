@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiError } from '../../domain/common/api-error';
+import { adminActionForUserUpdate } from '../../domain/users/user-rules';
 import { requireAdmin, requireManager } from '../common/roles';
 import { UpdateUserDto } from './users.dto';
 
@@ -35,13 +36,8 @@ export class UsersService {
   }
 
   async update(db: SupabaseClient, user: AuthUser, id: string, dto: UpdateUserDto) {
-    const changesAccess = dto.role !== undefined || dto.is_active !== undefined;
-    if (changesAccess) {
-      if (id === user.id) throw new ApiError(403, 'You cannot change your own role or active status');
-      await requireAdmin(db, user, 'change a role or deactivate a user');
-    } else if (id !== user.id) {
-      await requireAdmin(db, user, "change another user's name");
-    }
+    const adminAction = adminActionForUserUpdate(dto, id, user.id);
+    if (adminAction) await requireAdmin(db, user, adminAction);
 
     const { data, error } = await db
       .from('profile')
