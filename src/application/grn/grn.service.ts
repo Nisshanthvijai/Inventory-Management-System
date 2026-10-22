@@ -1,74 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { rpcArgs } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
-import { Conflict, NotAllowed, RuleViolation } from '../../domain/common/errors';
-import { UnexpectedError } from '../common/errors';
 import { PermissionService } from '../common/permission.service';
-import { parseRpcResult } from '../common/rpc-result';
-import { CreateGrnDto } from './grn.dto';
-import { GrnCreated, grnCreatedSchema, GrnListItem } from './grn.types';
 import { Session } from '../common/session';
-import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
+import { CreateGrnDto } from './grn.dto';
+import { GrnRepository } from './grn.repository';
+import { GrnCreated, GrnListItem } from './grn.types';
 
 @Injectable()
 export class GrnService {
-  constructor(private readonly permissions: PermissionService) {}
+  constructor(
+    private readonly permissions: PermissionService,
+    private readonly grns: GrnRepository,
+  ) {}
 
   async create(session: Session, user: AuthUser, dto: CreateGrnDto): Promise<GrnCreated> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
-    // The database also requires a requestor to have a line on the PO.
+    // The database also requires a requestor to have a line on the PO; requestors cannot read
+    // the PO tables, so the quantity and status rules are left to the database too.
     await this.permissions.require(session, user, 'grn.create');
-
-    // Quantity limits, "already complete" and "PO must be open" are enforced by the database
-    // (triggers and RLS) with clear messages; requestors cannot read PO tables to pre-check them.
-    const { data, error } = await db.rpc(
-      'create_grn',
-      rpcArgs<'create_grn'>({
-        p_po_id: dto.po_id,
-        p_invoice_no: dto.invoice_no,
-        p_lines: dto.lines,
-        p_invoice_date: dto.invoice_date ?? null,
-        p_received_date: dto.received_date ?? null,
-        p_comments: dto.comments ?? null,
-      }),
-    );
-
-    if (error) {
-      if (error.code === 'P0001' && error.message.includes('already complete')) {
-        throw new Conflict(error.message);
-      }
-      if (error.code === 'P0001' || error.code === '23514') throw new RuleViolation(error.message);
-      if (error.code === '42501') {
-        throw new NotAllowed(
-          'You cannot receive goods on this PO: it must be open or partially received (not fully received or cancelled), and a requestor needs one of their own lines on it',
-        );
-      }
-      if (error.code === '23503') {
-        throw new RuleViolation('The PO or a PO line does not exist, or a line does not belong to this PO');
-      }
-      if (error.code === '23505') throw new Conflict('This PO line is already on this GRN');
-      throw new UnexpectedError(error.message);
-    }
-
-    return parseRpcResult(grnCreatedSchema, data, 'create_grn');
+    return this.grns.create(session, dto);
   }
 
-  async list(session: Session): Promise<GrnListItem[]> {
-    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
-    // Read the tables, not v_grn_lines: that view joins PO tables a requestor cannot read.
-    // RLS shows a requestor their own receipts and a manager or admin all of them.
-    // One string literal (not joined pieces), so the typed client can read the columns.
-    const { data, error } = await db
-      .from('goods_receipt')
-      .select(
-        'id, grn_no, po_id, received_date, invoice_no, invoice_date, comments, received_by, created_at, receiver:profile!goods_receipt_received_by_fkey(full_name), lines:grn_line(id, po_line_id, variant_id, received_quantity, completes_line)',
-      )
-      .order('created_at', { ascending: false });
-    if (error) throw new UnexpectedError(error.message);
-
-    return (data ?? []).map(({ receiver, ...grn }) => {
-      const profile = Array.isArray(receiver) ? receiver[0] : receiver;
-      return { ...grn, received_by_name: profile?.full_name ?? null };
-    });
+  list(session: Session): Promise<GrnListItem[]> {
+    return this.grns.list(session);
   }
 }

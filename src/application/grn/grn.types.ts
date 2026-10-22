@@ -1,29 +1,30 @@
-import { z } from 'zod';
-import { Row } from '../common/database.types';
+/** What creating a GRN returns. */
+export interface GrnCreated {
+  grn_id: string;
+  grn_no: string;
+  lines: number;
+}
 
-/** What create_grn returns. */
-export const grnCreatedSchema = z.looseObject({
-  grn_id: z.string(),
-  grn_no: z.string(),
-  lines: z.number(),
-});
-export type GrnCreated = z.infer<typeof grnCreatedSchema>;
+/** One received line on a GRN. */
+export interface GrnLine {
+  id: string;
+  po_line_id: string;
+  variant_id: string;
+  received_quantity: number;
+  completes_line: boolean;
+}
 
-export type GrnListItem = Pick<
-  Row<'goods_receipt'>,
-  | 'id'
-  | 'grn_no'
-  | 'po_id'
-  | 'received_date'
-  | 'invoice_no'
-  | 'invoice_date'
-  | 'comments'
-  | 'received_by'
-  | 'created_at'
-> & {
+/** A goods receipt with its lines and the receiver's name. */
+export interface GrnListItem {
+  id: string;
+  grn_no: string;
+  po_id: string;
+  received_date: string;
+  invoice_no: string;
+  invoice_date: string | null;
+  comments: string | null;
+  received_by: string;
+  created_at: string;
   received_by_name: string | null;
-  lines: Pick<
-    Row<'grn_line'>,
-    'id' | 'po_line_id' | 'variant_id' | 'received_quantity' | 'completes_line'
-  >[];
-};
+  lines: GrnLine[];
+}
