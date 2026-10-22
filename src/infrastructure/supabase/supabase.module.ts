@@ -1,6 +1,5 @@
 import { Global, Module } from '@nestjs/common';
 import { AuthProvider } from '../../application/auth/auth-provider';
-import { DbFactory } from '../../application/common/db-factory';
 import { RoleReader } from '../../application/common/role-reader';
 import { SessionFactory } from '../../application/common/session';
 import { REPOSITORIES, REPOSITORY_TOKENS } from './repositories';
@@ -14,12 +13,11 @@ import { SupabaseService } from './supabase.service';
 @Module({
   providers: [
     SupabaseService,
-    { provide: DbFactory, useExisting: SupabaseService },
     { provide: SessionFactory, useClass: SupabaseSessionFactory },
     { provide: AuthProvider, useClass: SupabaseAuthProvider },
     { provide: RoleReader, useClass: SupabaseRoleReader },
     ...REPOSITORIES,
   ],
-  exports: [SupabaseService, DbFactory, SessionFactory, AuthProvider, RoleReader, ...REPOSITORY_TOKENS],
+  exports: [SupabaseService, SessionFactory, AuthProvider, RoleReader, ...REPOSITORY_TOKENS],
 })
 export class SupabaseModule {}

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Db } from '../../application/common/db';
+import { Db } from './db';
 import { Session, SessionFactory } from '../../application/common/session';
 import { SupabaseService } from './supabase.service';
 

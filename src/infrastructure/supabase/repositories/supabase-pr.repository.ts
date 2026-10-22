@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
-import { Row } from '../../../application/common/database.types';
+import { Row } from '../database.types';
 import { UnexpectedError } from '../../../application/common/errors';
 import { parseRpcResult } from '../rpc-result';
 import { Session } from '../../../application/common/session';

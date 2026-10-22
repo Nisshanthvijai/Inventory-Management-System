@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '../../application/common/database.types';
-import { Db } from '../../application/common/db';
-import { DbFactory } from '../../application/common/db-factory';
+import { Database } from './database.types';
+import { Db } from './db';
 
+/** Builds Supabase clients (anon key only; never the service_role key). Used inside infrastructure. */
 @Injectable()
-export class SupabaseService implements DbFactory {
+export class SupabaseService {
   private readonly url: string;
   private readonly anonKey: string;
 

@@ -76,11 +76,11 @@ Review date: 2026-10-22. Scope: every file in `src/`, with import directions che
 
 ### Phase 4: repositories (large; changes the "services take `(db, ...)`" rule)
 
-- [ ] 9. An opaque `Session` port instead of `SupabaseClient`; `@CurrentSession()`; no Supabase in presentation. (C1)
-- [ ] 10. One repository port per feature, implemented in `infrastructure/supabase/repositories/`; queries and DB-error translation move there. (C3, S, I, D)
-- [ ] 11. Message matching moves into the repositories; optionally, triggers raise their own SQLSTATE codes (needs migrations). (C4)
-- [ ] 12. Split `MasterResource` into presentation routes, domain policy and infrastructure table mapping. (C5, I)
-- [ ] 13. Update CLAUDE.md for sessions and repositories.
+- [x] 9. An opaque `Session` port instead of `SupabaseClient`; `@CurrentSession()`; no Supabase in presentation. (C1)
+- [x] 10. One repository port per feature, implemented in `infrastructure/supabase/repositories/`; queries and DB-error translation move there. (C3, S, I, D)
+- [x] 11. Message matching moves into the repositories. (C4) *Done: the four matches now live only in infrastructure. Not done: triggers raising their own SQLSTATE codes (needs DB migrations; a separate decision).*
+- [x] 12. Split `MasterResource` into presentation routes, domain policy and infrastructure table mapping. (C5, I)
+- [x] 13. Update CLAUDE.md for sessions and repositories.
 
 ### Phase 5: smaller fixes
 
@@ -101,4 +101,5 @@ Review date: 2026-10-22. Scope: every file in `src/`, with import directions che
 ## Progress log
 
 - 2026-10-22: review written; phases 1 to 3 started on branch `arch-phase-1-3`.
-- 2026-10-22: phases 1 to 3 done on `arch-phase-1-3` (steps 1, 2, 3, 4, 6, 7, 8; step 5 declined). 445 tests pass; live server checked without login. Not merged; Postman run with a login still to do.
+- 2026-10-22: phases 1 to 3 done on `arch-phase-1-3` (steps 1, 2, 3, 4, 6, 7, 8; step 5 declined). 445 tests pass; live server checked without login. Merged after a Postman run with a login.
+- 2026-10-22: phase 4 done on `arch-phase-4` (steps 9 to 13). Supabase now appears only in infrastructure; 445 tests pass. Not merged; Postman run with a login still to do.

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PostgrestError } from '@supabase/supabase-js';
-import { Database } from '../../../application/common/database.types';
-import { untyped } from '../../../application/common/db';
+import { Database } from '../database.types';
+import { untyped } from '../db';
 import { UnexpectedError } from '../../../application/common/errors';
 import { Session } from '../../../application/common/session';
 import { MasterRepository } from '../../../application/master/master.repository';

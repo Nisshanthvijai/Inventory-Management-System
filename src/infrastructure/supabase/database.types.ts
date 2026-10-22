@@ -1,8 +1,7 @@
 /**
  * Generated from the Supabase project's schema (supabase gen types typescript) on 2026-10-22.
  * Do not edit by hand: regenerate after every migration.
- * Lives in application/ for now because services still receive a SupabaseClient; phase 4
- * (repositories) moves it to infrastructure.
+ * Only infrastructure uses it: use cases see Sessions and their own read models, not tables.
  */
 export type Json =
   | string

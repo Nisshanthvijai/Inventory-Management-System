@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RpcResult } from '../../../application/common/database.types';
+import { RpcResult } from '../database.types';
 import { UnexpectedError } from '../../../application/common/errors';
 import { Session } from '../../../application/common/session';
 import { PoLinesRepository } from '../../../application/po-lines/po-lines.repository';
