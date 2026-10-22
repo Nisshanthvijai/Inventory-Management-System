@@ -1,17 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { Row } from '../common/database.types';
-import { Db } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
 import { PermissionService } from '../common/permission.service';
 import { SetStockDto } from './stock.dto';
+import { Session } from '../common/session';
+import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
 
 @Injectable()
 export class StockService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async list(db: Db): Promise<Row<'v_stock'>[]> {
+  async list(session: Session): Promise<Row<'v_stock'>[]> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
     const { data, error } = await db
       .from('v_stock')
       .select('*')
@@ -23,8 +25,9 @@ export class StockService {
   }
 
   /** Admin only. One UPDATE sets the new total, so concurrent admins cannot lose each other's change. */
-  async setQuantity(db: Db, user: AuthUser, id: string, dto: SetStockDto): Promise<Row<'v_stock'> | null> {
-    await this.permissions.require(db, user, 'stock.set');
+  async setQuantity(session: Session, user: AuthUser, id: string, dto: SetStockDto): Promise<Row<'v_stock'> | null> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+    await this.permissions.require(session, user, 'stock.set');
 
     const { data, error } = await db
       .from('stock')

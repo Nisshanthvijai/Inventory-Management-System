@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Db } from '../../application/common/db';
-import { CurrentDb } from '../common/current.decorators';
+import { Session } from '../../application/common/session';
+import { CurrentSession } from '../common/current.decorators';
 import { PoLinesService } from '../../application/po-lines/po-lines.service';
 
 @ApiTags('purchase orders')
@@ -12,7 +12,7 @@ export class PoLinesController {
 
   @Get('mine')
   @ApiOperation({ summary: 'PO lines for PRs you requested, without prices (any user)' })
-  mine(@CurrentDb() db: Db) {
-    return this.poLines.mine(db);
+  mine(@CurrentSession() session: Session) {
+    return this.poLines.mine(session);
   }
 }

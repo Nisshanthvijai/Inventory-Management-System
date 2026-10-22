@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthProvider } from '../../application/auth/auth-provider';
-import { DbFactory } from '../../application/common/db-factory';
+import { SessionFactory } from '../../application/common/session';
 import { AuthedRequest } from './authed-request';
 import { IS_PUBLIC_KEY } from './public.decorator';
 
@@ -15,7 +15,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly auth: AuthProvider,
-    private readonly db: DbFactory,
+    private readonly sessions: SessionFactory,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -37,8 +37,7 @@ export class AuthGuard implements CanActivate {
     if (!user) throw new UnauthorizedException('Invalid or expired token');
 
     req.user = user;
-    req.token = token;
-    req.db = this.db.forUser(token);
+    req.session = this.sessions.forUser(token);
     return true;
   }
 }

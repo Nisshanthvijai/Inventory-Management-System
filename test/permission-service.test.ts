@@ -1,12 +1,13 @@
-import { SupabaseClient } from '@supabase/supabase-js';
 import { UnexpectedError } from '../src/application/common/errors';
 import { PermissionService } from '../src/application/common/permission.service';
 import { RoleReader } from '../src/application/common/role-reader';
 import { NotAllowed } from '../src/domain/common/errors';
 import { Role } from '../src/domain/common/role';
+import { Session } from '../src/application/common/session';
 import { SupabaseRoleReader } from '../src/infrastructure/supabase/supabase-role.reader';
+import { SupabaseSession } from '../src/infrastructure/supabase/supabase-session';
 
-const db = {} as SupabaseClient;
+const session = {} as Session;
 const user = { id: 'u1', email: 'x@x.com' };
 
 describe('PermissionService (with a fake RoleReader: no Nest, no database)', () => {
@@ -15,63 +16,63 @@ describe('PermissionService (with a fake RoleReader: no Nest, no database)', () 
     return { permissions: new PermissionService({ roleOf } as RoleReader), roleOf };
   };
 
-  it('reads the role of the caller, with the caller db', async () => {
+  it('reads the role of the caller, in the caller session', async () => {
     const { permissions, roleOf } = service('manager');
-    await permissions.require(db, user, 'po.create');
-    expect(roleOf).toHaveBeenCalledWith(db, 'u1');
+    await permissions.require(session, user, 'po.create');
+    expect(roleOf).toHaveBeenCalledWith(session, 'u1');
   });
 
   it('lets an allowed role through', async () => {
-    await expect(service('admin').permissions.require(db, user, 'stock.set')).resolves.toBeUndefined();
+    await expect(service('admin').permissions.require(session, user, 'stock.set')).resolves.toBeUndefined();
   });
 
   it('refuses with the permission table message', async () => {
     const { permissions } = service('requestor');
-    await expect(permissions.require(db, user, 'po.create')).rejects.toThrow(NotAllowed);
-    await expect(permissions.require(db, user, 'po.create')).rejects.toThrow(
+    await expect(permissions.require(session, user, 'po.create')).rejects.toThrow(NotAllowed);
+    await expect(permissions.require(session, user, 'po.create')).rejects.toThrow(
       'Only a manager or admin can create a PO',
     );
   });
 
   it('passes the subject through', async () => {
-    await expect(service('manager').permissions.require(db, user, 'master.write', 'brand')).rejects.toThrow(
+    await expect(service('manager').permissions.require(session, user, 'master.write', 'brand')).rejects.toThrow(
       'Only an admin can create or change brands',
     );
   });
 
   it('refuses a caller with no profile row', async () => {
-    await expect(service(null).permissions.require(db, user, 'user.list')).rejects.toThrow(NotAllowed);
+    await expect(service(null).permissions.require(session, user, 'user.list')).rejects.toThrow(NotAllowed);
   });
 });
 
 describe('SupabaseRoleReader', () => {
-  const fakeDb = (result: { data: unknown; error: unknown }) => {
+  const fakeSession = (result: { data: unknown; error: unknown }) => {
     const eq = vi.fn(() => ({ maybeSingle: async () => result }));
     const select = vi.fn(() => ({ eq }));
     const from = vi.fn(() => ({ select }));
-    return { db: { from } as unknown as SupabaseClient, from, select, eq };
+    return { session: new SupabaseSession({ from } as never), from, select, eq };
   };
 
   it('reads profile.role for the user id', async () => {
-    const f = fakeDb({ data: { role: 'manager' }, error: null });
-    await expect(new SupabaseRoleReader().roleOf(f.db, 'u1')).resolves.toBe('manager');
+    const f = fakeSession({ data: { role: 'manager' }, error: null });
+    await expect(new SupabaseRoleReader().roleOf(f.session, 'u1')).resolves.toBe('manager');
     expect(f.from).toHaveBeenCalledWith('profile');
     expect(f.select).toHaveBeenCalledWith('role');
     expect(f.eq).toHaveBeenCalledWith('id', 'u1');
   });
 
   it('returns null when there is no profile row', async () => {
-    await expect(new SupabaseRoleReader().roleOf(fakeDb({ data: null, error: null }).db, 'u1')).resolves.toBeNull();
+    await expect(new SupabaseRoleReader().roleOf(fakeSession({ data: null, error: null }).session, 'u1')).resolves.toBeNull();
   });
 
   it('returns null for a role the app does not know', async () => {
-    const f = fakeDb({ data: { role: 'superuser' }, error: null });
-    await expect(new SupabaseRoleReader().roleOf(f.db, 'u1')).resolves.toBeNull();
+    const f = fakeSession({ data: { role: 'superuser' }, error: null });
+    await expect(new SupabaseRoleReader().roleOf(f.session, 'u1')).resolves.toBeNull();
   });
 
   it('throws UnexpectedError with the database message when the read fails', async () => {
-    const f = fakeDb({ data: null, error: { message: 'boom' } });
-    await expect(new SupabaseRoleReader().roleOf(f.db, 'u1')).rejects.toThrow(UnexpectedError);
-    await expect(new SupabaseRoleReader().roleOf(f.db, 'u1')).rejects.toThrow('boom');
+    const f = fakeSession({ data: null, error: { message: 'boom' } });
+    await expect(new SupabaseRoleReader().roleOf(f.session, 'u1')).rejects.toThrow(UnexpectedError);
+    await expect(new SupabaseRoleReader().roleOf(f.session, 'u1')).rejects.toThrow('boom');
   });
 });

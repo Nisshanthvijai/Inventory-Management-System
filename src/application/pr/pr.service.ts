@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { Db } from '../common/db';
 import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
 import { parseRpcResult } from '../common/rpc-result';
 import { CreatePrDto } from './pr.dto';
 import { PrCreated, prCreatedSchema, PrDetail, PrSummary } from './pr.types';
+import { Session } from '../common/session';
+import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
 
 @Injectable()
 export class PrService {
-  async create(db: Db, dto: CreatePrDto): Promise<PrCreated> {
+  async create(session: Session, dto: CreatePrDto): Promise<PrCreated> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
     const { data, error } = await db.rpc('create_pr', {
       p_lines: dto.lines,
       p_priority: dto.priority,
@@ -25,7 +27,8 @@ export class PrService {
     return parseRpcResult(prCreatedSchema, data, 'create_pr');
   }
 
-  async list(db: Db): Promise<PrSummary[]> {
+  async list(session: Session): Promise<PrSummary[]> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
     const { data, error } = await db
       .from('purchase_requisition')
       .select(
@@ -41,7 +44,8 @@ export class PrService {
     });
   }
 
-  async get(db: Db, id: string): Promise<PrDetail> {
+  async get(session: Session, id: string): Promise<PrDetail> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
     const { data: header, error } = await db
       .from('purchase_requisition')
       .select(

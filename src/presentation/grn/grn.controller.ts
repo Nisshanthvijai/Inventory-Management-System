@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Db } from '../../application/common/db';
+import { Session } from '../../application/common/session';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiZodBody } from '../common/api-zod-body';
-import { CurrentDb, CurrentUser } from '../common/current.decorators';
+import { CurrentSession, CurrentUser } from '../common/current.decorators';
 import { ZodPipe } from '../common/zod.pipe';
 import { type CreateGrnDto, createGrnSchema } from '../../application/grn/grn.dto';
 import { GrnService } from '../../application/grn/grn.service';
@@ -21,16 +21,16 @@ export class GrnController {
   })
   @ApiZodBody(createGrnSchema)
   create(
-    @CurrentDb() db: Db,
+    @CurrentSession() session: Session,
     @CurrentUser() user: AuthUser,
     @Body(new ZodPipe(createGrnSchema)) dto: CreateGrnDto,
   ) {
-    return this.grn.create(db, user, dto);
+    return this.grn.create(session, user, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List goods receipts with their lines (yours, or all for manager/admin)' })
-  list(@CurrentDb() db: Db) {
-    return this.grn.list(db);
+  list(@CurrentSession() session: Session) {
+    return this.grn.list(session);
   }
 }

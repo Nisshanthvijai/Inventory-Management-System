@@ -1,9 +1,9 @@
 import { Body, Controller, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Db } from '../../application/common/db';
+import { Session } from '../../application/common/session';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiZodBody } from '../common/api-zod-body';
-import { CurrentDb, CurrentUser } from '../common/current.decorators';
+import { CurrentSession, CurrentUser } from '../common/current.decorators';
 import { UuidPipe } from '../common/uuid.pipe';
 import { ZodPipe } from '../common/zod.pipe';
 import { type DecideLineDto, decideLineSchema } from '../../application/pr-lines/pr-lines.dto';
@@ -21,11 +21,11 @@ export class PrLinesController {
   })
   @ApiZodBody(decideLineSchema)
   decide(
-    @CurrentDb() db: Db,
+    @CurrentSession() session: Session,
     @CurrentUser() user: AuthUser,
     @Param('id', new UuidPipe()) id: string,
     @Body(new ZodPipe(decideLineSchema)) dto: DecideLineDto,
   ) {
-    return this.prLines.decide(db, user, id, dto);
+    return this.prLines.decide(session, user, id, dto);
   }
 }

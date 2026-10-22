@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PostgrestError } from '@supabase/supabase-js';
-import { Db, untyped } from '../common/db';
+import { untyped } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
 import { PermissionService } from '../common/permission.service';
 import { MasterResource } from './master.resources';
+import { Session } from '../common/session';
+import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
 
 /**
  * Generic list / create / update for every master table. The table is chosen at runtime from
@@ -16,8 +18,9 @@ import { MasterResource } from './master.resources';
 export class MasterService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async list(db: Db, user: AuthUser, r: MasterResource): Promise<unknown[]> {
-    if (r.readRole === 'manager') await this.permissions.require(db, user, 'master.view-restricted', r.label);
+  async list(session: Session, user: AuthUser, r: MasterResource): Promise<unknown[]> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+    if (r.readRole === 'manager') await this.permissions.require(session, user, 'master.view-restricted', r.label);
 
     let query = untyped(db).from(r.listFrom ?? r.table).select(r.listSelect ?? r.select);
     for (const column of r.order) query = query.order(column);
@@ -26,15 +29,17 @@ export class MasterService {
     return data ?? [];
   }
 
-  async create(db: Db, user: AuthUser, r: MasterResource, dto: object): Promise<unknown> {
-    await this.permissions.require(db, user, 'master.write', r.label);
+  async create(session: Session, user: AuthUser, r: MasterResource, dto: object): Promise<unknown> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+    await this.permissions.require(session, user, 'master.write', r.label);
     const { data, error } = await untyped(db).from(r.table).insert(dto).select(r.select).single();
     if (error) throw this.writeError(error, r);
     return data;
   }
 
-  async update(db: Db, user: AuthUser, r: MasterResource, id: string, dto: object): Promise<unknown> {
-    await this.permissions.require(db, user, 'master.write', r.label);
+  async update(session: Session, user: AuthUser, r: MasterResource, id: string, dto: object): Promise<unknown> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+    await this.permissions.require(session, user, 'master.write', r.label);
     const { data, error } = await untyped(db)
       .from(r.table)
       .update(dto)

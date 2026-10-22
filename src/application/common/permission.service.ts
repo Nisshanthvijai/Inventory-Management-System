@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Db } from './db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Action, assertCan } from '../../domain/common/permissions';
 import { RoleReader } from './role-reader';
+import { Session } from './session';
 
 /**
  * Checks permissions for use cases. The role is read only when a check runs, so a request
@@ -13,7 +13,7 @@ export class PermissionService {
   constructor(private readonly roles: RoleReader) {}
 
   /** Throws NotAllowed unless the caller may do the action (see PERMISSIONS). */
-  async require(db: Db, user: AuthUser, action: Action, subject?: string) {
-    assertCan(await this.roles.roleOf(db, user.id), action, subject);
+  async require(session: Session, user: AuthUser, action: Action, subject?: string) {
+    assertCan(await this.roles.roleOf(session, user.id), action, subject);
   }
 }

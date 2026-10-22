@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Db } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
@@ -7,6 +6,8 @@ import { permissionForUserUpdate } from '../../domain/users/user-rules';
 import { PermissionService } from '../common/permission.service';
 import { UpdateUserDto } from './users.dto';
 import { MyProfile, UserRow } from './users.types';
+import { Session } from '../common/session';
+import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
 
 const COLUMNS = 'id, full_name, role, is_active, created_at';
 
@@ -19,7 +20,8 @@ export class UsersService {
   constructor(private readonly permissions: PermissionService) {}
 
   /** The signed-in user's own profile, plus the email from their token. */
-  async me(db: Db, user: AuthUser): Promise<MyProfile> {
+  async me(session: Session, user: AuthUser): Promise<MyProfile> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
     const { data, error } = await db
       .from('profile')
       .select('id, full_name, role, is_active')
@@ -33,16 +35,18 @@ export class UsersService {
     return { ...data, email: user.email };
   }
 
-  async list(db: Db, user: AuthUser): Promise<UserRow[]> {
-    await this.permissions.require(db, user, 'user.list');
+  async list(session: Session, user: AuthUser): Promise<UserRow[]> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+    await this.permissions.require(session, user, 'user.list');
     const { data, error } = await db.from('profile').select(COLUMNS).order('full_name');
     if (error) throw new UnexpectedError(error.message);
     return data ?? [];
   }
 
-  async update(db: Db, user: AuthUser, id: string, dto: UpdateUserDto): Promise<UserRow> {
+  async update(session: Session, user: AuthUser, id: string, dto: UpdateUserDto): Promise<UserRow> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
     const permission = permissionForUserUpdate(dto, id, user.id);
-    if (permission) await this.permissions.require(db, user, permission);
+    if (permission) await this.permissions.require(session, user, permission);
 
     const { data, error } = await db
       .from('profile')

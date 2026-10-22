@@ -1,19 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { Row } from '../common/database.types';
-import { Db } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
 import { assertApprovedWithinRequested, decisionFields } from '../../domain/pr-lines/pr-line-rules';
 import { PermissionService } from '../common/permission.service';
 import { DecideLineDto } from './pr-lines.dto';
+import { Session } from '../common/session';
+import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
 
 @Injectable()
 export class PrLinesService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async decide(db: Db, user: AuthUser, id: string, dto: DecideLineDto): Promise<Row<'v_pr_lines'> | null> {
-    await this.permissions.require(db, user, 'pr-line.decide');
+  async decide(session: Session, user: AuthUser, id: string, dto: DecideLineDto): Promise<Row<'v_pr_lines'> | null> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+    await this.permissions.require(session, user, 'pr-line.decide');
 
     const { data: line, error: lineError } = await db
       .from('pr_line')

@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Db } from '../../application/common/db';
+import { Session } from '../../application/common/session';
 import { AuthUser } from '../../domain/common/auth-user';
 import { ApiZodBody } from '../common/api-zod-body';
-import { CurrentDb, CurrentUser } from '../common/current.decorators';
+import { CurrentSession, CurrentUser } from '../common/current.decorators';
 import { UuidPipe } from '../common/uuid.pipe';
 import { ZodPipe } from '../common/zod.pipe';
 import { type SetStockDto, setStockSchema } from '../../application/stock/stock.dto';
@@ -17,8 +17,8 @@ export class StockController {
 
   @Get()
   @ApiOperation({ summary: 'Stock per variant, in the stock unit, with reorder flags' })
-  list(@CurrentDb() db: Db) {
-    return this.stock.list(db);
+  list(@CurrentSession() session: Session) {
+    return this.stock.list(session);
   }
 
   /** `:id` is the stock_id from GET /stock. */
@@ -26,11 +26,11 @@ export class StockController {
   @ApiOperation({ summary: 'Set the absolute quantity of a stock row (admin). :id is stock_id.' })
   @ApiZodBody(setStockSchema)
   setQuantity(
-    @CurrentDb() db: Db,
+    @CurrentSession() session: Session,
     @CurrentUser() user: AuthUser,
     @Param('id', new UuidPipe()) id: string,
     @Body(new ZodPipe(setStockSchema)) dto: SetStockDto,
   ) {
-    return this.stock.setQuantity(db, user, id, dto);
+    return this.stock.setQuantity(session, user, id, dto);
   }
 }

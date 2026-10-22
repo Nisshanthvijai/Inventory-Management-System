@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Db, rpcArgs } from '../common/db';
+import { rpcArgs } from '../common/db';
 import { AuthUser } from '../../domain/common/auth-user';
 import { Conflict, NotAllowed, NotFound, RuleViolation } from '../../domain/common/errors';
 import { UnexpectedError } from '../common/errors';
@@ -11,14 +11,17 @@ import { PermissionService } from '../common/permission.service';
 import { parseRpcResult } from '../common/rpc-result';
 import { CreatePoDto } from './po.dto';
 import { PoCreated, poCreatedSchema, PoDetail, PoSummary } from './po.types';
+import { Session } from '../common/session';
+import { dbOf } from '../../infrastructure/supabase/supabase-session'; // TEMP (phase 4)
 
 @Injectable()
 export class PoService {
   constructor(private readonly permissions: PermissionService) {}
 
-  async list(db: Db, user: AuthUser): Promise<PoSummary[]> {
+  async list(session: Session, user: AuthUser): Promise<PoSummary[]> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
     // RLS alone would give a requestor an empty list; a clear 403 says why.
-    await this.permissions.require(db, user, 'po.view');
+    await this.permissions.require(session, user, 'po.view');
 
     const { data, error } = await db
       .from('v_purchase_order')
@@ -28,8 +31,9 @@ export class PoService {
     return data;
   }
 
-  async get(db: Db, user: AuthUser, id: string): Promise<PoDetail> {
-    await this.permissions.require(db, user, 'po.view');
+  async get(session: Session, user: AuthUser, id: string): Promise<PoDetail> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+    await this.permissions.require(session, user, 'po.view');
 
     const { data: header, error } = await db
       .from('v_purchase_order')
@@ -50,8 +54,9 @@ export class PoService {
     return { ...header, lines: lines ?? [] };
   }
 
-  async cancel(db: Db, user: AuthUser, id: string): Promise<PoSummary | null> {
-    await this.permissions.require(db, user, 'po.cancel');
+  async cancel(session: Session, user: AuthUser, id: string): Promise<PoSummary | null> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+    await this.permissions.require(session, user, 'po.cancel');
 
     const { data: po, error } = await db
       .from('purchase_order')
@@ -91,8 +96,9 @@ export class PoService {
     return result;
   }
 
-  async create(db: Db, user: AuthUser, dto: CreatePoDto): Promise<PoCreated> {
-    await this.permissions.require(db, user, 'po.create');
+  async create(session: Session, user: AuthUser, dto: CreatePoDto): Promise<PoCreated> {
+    const db = dbOf(session); // TEMP (phase 4): removed when this feature gets its repository
+    await this.permissions.require(session, user, 'po.create');
 
     const prLineIds = dto.lines.map((l) => l.pr_line_id);
 
